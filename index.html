@@ -1,0 +1,1232 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f5f3ee">
+<title>Planning des internes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,650&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+:root{
+  --bg:#f5f3ee; --card:#fffdf9; --ink:#1d1b16; --muted:#6f6a5f; --line:#e6e1d6; --soft:#efebe2;
+  --accent:#3f4bb8; --accent-soft:#e6e8f8;
+  --souhait:#5b4ccc; --consult:#2a9aa8; --dispo:#e3f1e8; --eviter:#f2c662; --pasgarde:#ef9a5d; --indispo:#d95757;
+  --r:16px; --shadow:0 1px 2px rgba(29,27,22,.05),0 8px 24px -12px rgba(29,27,22,.14);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 Manrope,system-ui,sans-serif}
+button,input,select,textarea{font:inherit;color:inherit}
+h1,h2,h3{font-family:Fraunces,Georgia,serif;font-weight:650;letter-spacing:-.01em;margin:0}
+.wrap{max-width:980px;margin:0 auto;padding:0 16px calc(96px + env(safe-area-inset-bottom))}
+.hidden{display:none!important}
+.muted{color:var(--muted)} .small{font-size:13px}
+
+/* Header */
+header.top{position:sticky;top:0;z-index:20;background:rgba(245,243,238,.86);backdrop-filter:blur(12px);border-bottom:1px solid var(--line)}
+header.top .in{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;gap:12px}
+.brand{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+.logo{width:34px;height:34px;border-radius:10px;background:var(--ink);color:var(--bg);display:grid;place-items:center;font-family:Fraunces;font-size:18px}
+.brand h1{font-size:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.me{display:flex;align-items:center;gap:8px}
+.avatar{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:700;font-size:12px;flex:none}
+.chip{display:inline-flex;align-items:center;gap:6px;padding:3px 9px;border-radius:999px;background:var(--soft);font-size:12px;font-weight:600}
+.btn{border:0;border-radius:12px;padding:10px 16px;font-weight:600;cursor:pointer;background:var(--ink);color:var(--bg);transition:transform .08s,opacity .2s}
+.btn:active{transform:scale(.97)} .btn[disabled]{opacity:.5;pointer-events:none}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+.btn.soft{background:var(--soft);color:var(--ink)}
+.btn.accent{background:var(--accent);color:#fff}
+.btn.sm{padding:6px 11px;font-size:13px;border-radius:10px}
+
+/* Tabs (bottom bar on mobile) */
+nav.tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(14px + env(safe-area-inset-bottom));z-index:30;display:flex;gap:4px;padding:5px;background:var(--ink);border-radius:999px;box-shadow:0 12px 30px -10px rgba(0,0,0,.4)}
+nav.tabs button{border:0;background:transparent;color:#cfc9bc;padding:9px 16px;border-radius:999px;font-weight:600;cursor:pointer;white-space:nowrap}
+nav.tabs button.on{background:var(--bg);color:var(--ink)}
+
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:18px;margin-top:16px}
+.card h2{font-size:20px;margin-bottom:4px}
+.sec-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-top:22px;flex-wrap:wrap}
+.sec-head h2{font-size:26px}
+.banner{margin-top:14px;padding:12px 14px;border-radius:12px;background:var(--accent-soft);color:#28307a;font-size:14px}
+.banner.warn{background:#fbecd0;color:#7a4b06}
+.banner.err{background:#f8dcdc;color:#7d2323}
+
+/* Brushes */
+.brushes{display:flex;gap:8px;overflow-x:auto;padding:4px 2px 8px;margin:0 -2px;scrollbar-width:none}
+.brush{flex:none;display:flex;align-items:center;gap:8px;border:1.5px solid var(--line);background:var(--card);border-radius:12px;padding:8px 12px;cursor:pointer;font-weight:600;font-size:14px}
+.brush .sw{width:16px;height:16px;border-radius:5px;display:grid;place-items:center;font-size:11px;color:#fff}
+.brush.on{border-color:var(--ink);box-shadow:0 0 0 2px var(--ink) inset}
+
+/* Calendar */
+.cal{margin-top:8px;user-select:none;-webkit-user-select:none}
+.cal-head,.week{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.cal-head div{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);text-align:center;padding:6px 0;font-weight:700}
+.wk-label{font-size:12px;color:var(--muted);margin:12px 2px 5px;font-weight:600}
+.day{position:relative;aspect-ratio:1/1;min-height:44px;border-radius:12px;background:var(--card);border:1px solid var(--line);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;transition:transform .08s,background .15s}
+.day:active{transform:scale(.94)}
+.day .n{font-weight:700;font-size:15px}
+.day .m{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.day .ic{font-size:12px;line-height:1}
+.day.we{background:var(--soft)}
+.day.out{visibility:hidden}
+.day .dot{position:absolute;top:5px;right:6px;width:6px;height:6px;border-radius:50%;background:var(--ink)}
+.st-souhait{background:var(--souhait)!important;color:#fff;border-color:transparent!important}
+.st-souhait .m{color:#dcd7ff}
+.st-consult{background:var(--consult)!important;color:#fff;border-color:transparent!important}
+.st-consult .m{color:rgba(255,255,255,.75)} .st-consult .dot{background:#fff}
+.st-eviter{background:var(--eviter)!important;border-color:transparent!important}
+.st-pas_garde{background:var(--pasgarde)!important;color:#fff;border-color:transparent!important}
+.st-pas_garde .m{color:#fff3}
+.st-indispo{background:var(--indispo)!important;color:#fff;border-color:transparent!important}
+.st-indispo .m,.st-pas_garde .m{color:rgba(255,255,255,.75)}
+.st-souhait .dot,.st-pas_garde .dot,.st-indispo .dot{background:#fff}
+
+.counts{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.savebar{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--muted)}
+.pulse{width:8px;height:8px;border-radius:50%;background:#3aa76d}
+.pulse.busy{background:#e3a32c;animation:pl 1s infinite} .pulse.err{background:var(--indispo)}
+@keyframes pl{50%{opacity:.3}}
+textarea,input[type=text],input[type=email],input[type=date],input[type=number],select{width:100%;border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 11px;outline:none}
+textarea:focus,input:focus,select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-soft)}
+textarea{min-height:80px;resize:vertical}
+
+/* Planning */
+.pday{aspect-ratio:auto;min-height:68px;justify-content:flex-start;padding:6px 3px;gap:4px}
+.pday .n{font-size:13px}
+.gchips{display:flex;flex-wrap:wrap;gap:3px;justify-content:center}
+.gchip{min-width:24px;height:24px;padding:0 5px;border-radius:8px;color:#fff;font-size:11px;font-weight:700;display:grid;place-items:center}
+.gchip.empty{background:#f6d4d4;color:#8a2b2b}
+.pday.mine-G{outline:2.5px solid var(--accent);outline-offset:-2px}
+.mycode{font-size:10px;font-weight:700;padding:1px 6px;border-radius:6px}
+.c-G{background:var(--accent);color:#fff}.c-R{background:#e7e5df;color:#555}.c-S{background:#dff0e6;color:#1d4d33}.c-A{background:#f6d4d4;color:#8a2b2b}.c-OFF{background:transparent;color:var(--muted)}
+.seg{display:inline-flex;background:var(--soft);border-radius:12px;padding:3px}
+.seg button{border:0;background:transparent;padding:6px 12px;border-radius:9px;font-weight:600;cursor:pointer;font-size:13px}
+.seg button.on{background:var(--card);box-shadow:var(--shadow)}
+
+table.t{width:100%;border-collapse:collapse;font-size:14px}
+table.t th{text-align:left;font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.05em;padding:8px 6px;border-bottom:1px solid var(--line)}
+table.t td{padding:9px 6px;border-bottom:1px solid var(--line)}
+table.t tr:last-child td{border-bottom:0}
+.scroll{overflow-x:auto}
+.bar{height:6px;background:var(--soft);border-radius:4px;overflow:hidden;min-width:60px}
+.bar i{display:block;height:100%;background:var(--accent)}
+
+/* Overview grid */
+.ov{border-collapse:separate;border-spacing:3px;font-size:12px}
+.ov th{font-weight:700;padding:4px 6px;white-space:nowrap;position:sticky;top:0;background:var(--card)}
+.ov td.d{white-space:nowrap;color:var(--muted);padding-right:8px;font-weight:600}
+.ov td.c{width:44px;height:24px;border-radius:6px;text-align:center;background:var(--dispo);color:#fff;font-weight:700}
+.ov tr.we td.d{color:var(--ink)}
+
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media(max-width:620px){.grid2{grid-template-columns:1fr}}
+label.f{display:block;font-size:13px;font-weight:600;margin-bottom:5px;color:var(--muted)}
+.row{display:flex;gap:8px;align-items:center}
+.irow{display:grid;grid-template-columns:42px 1.1fr 1.6fr 110px 34px;gap:8px;align-items:center;margin-bottom:8px}
+.irow input[type=color]{width:42px;height:40px;border:1px solid var(--line);border-radius:10px;padding:3px;background:#fff}
+@media(max-width:620px){.irow{grid-template-columns:42px 1fr 34px}.irow .em{grid-column:1/-1}.irow .rl{grid-column:1/-1}}
+.x{border:0;background:var(--soft);width:34px;height:34px;border-radius:10px;cursor:pointer}
+.switch{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--line)}
+.switch:last-child{border-bottom:0}
+.tg{position:relative;width:46px;height:28px;flex:none}
+.tg input{opacity:0;width:0;height:0}
+.tg span{position:absolute;inset:0;background:#d8d3c7;border-radius:999px;transition:.2s;cursor:pointer}
+.tg span:before{content:"";position:absolute;width:22px;height:22px;left:3px;top:3px;background:#fff;border-radius:50%;transition:.2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.tg input:checked+span{background:var(--accent)}
+.tg input:checked+span:before{transform:translateX(18px)}
+.alert{display:flex;gap:10px;padding:8px 0;border-bottom:1px dashed var(--line);font-size:14px}
+
+/* Modal */
+.modal{position:fixed;inset:0;z-index:50;background:rgba(29,27,22,.38);display:flex;align-items:flex-end;justify-content:center;animation:fd .15s}
+.sheet{background:var(--card);width:100%;max-width:520px;border-radius:22px 22px 0 0;padding:20px 18px calc(22px + env(safe-area-inset-bottom));animation:up .2s ease-out;max-height:88vh;overflow:auto}
+@media(min-width:620px){.modal{align-items:center}.sheet{border-radius:22px}}
+@keyframes up{from{transform:translateY(30px);opacity:0}} @keyframes fd{from{opacity:0}}
+.toast{position:fixed;left:50%;top:18px;transform:translateX(-50%);z-index:60;background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:12px;font-weight:600;font-size:14px;box-shadow:var(--shadow);animation:up .2s}
+
+/* Login */
+.login{min-height:100vh;display:grid;place-items:center;padding:24px}
+.login .box{max-width:420px;text-align:center}
+.login h1{font-size:40px;line-height:1.05;margin:18px 0 10px}
+.login .logo{width:56px;height:56px;border-radius:16px;font-size:28px;margin:0 auto}
+#gbtn{display:flex;justify-content:center;margin-top:26px;min-height:44px}
+.spin{width:22px;height:22px;border:3px solid var(--line);border-top-color:var(--ink);border-radius:50%;animation:sp .8s linear infinite;margin:40px auto}
+@keyframes sp{to{transform:rotate(360deg)}}
+.legend{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:12px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+
+.btn.lg{padding:13px 22px;font-size:16px;border-radius:14px}
+.btn.light{background:#fffdf9;color:var(--ink)} .btn.ghost-light{background:transparent;color:#fffdf9;border:1px solid rgba(255,255,255,.35)}
+.hero{background:linear-gradient(135deg,#232149 0%,#3f4bb8 100%);color:#fffdf9;border:0}
+.hero h2{font-size:26px;color:#fffdf9}
+.hero-in{display:flex;align-items:center;gap:18px;flex-wrap:wrap}
+.eyebrow{font-size:11px;letter-spacing:.12em;text-transform:uppercase;opacity:.7;font-weight:700}
+.bar.light{background:rgba(255,255,255,.2)} .bar.light i{background:#fffdf9}
+.hero-alerts{margin-top:16px;background:rgba(255,255,255,.08);border-radius:12px;padding:6px 12px;max-height:220px;overflow:auto}
+.hero-alerts .alert{border-color:rgba(255,255,255,.18)}
+.chip.ok{background:rgba(255,255,255,.15);color:#fffdf9;margin:6px 0}
+h3.sub{font-family:Manrope;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:12px 0 6px}
+ul.rules{margin:0;padding-left:18px;font-size:14px} ul.rules li{margin:5px 0}
+.rrow{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line)}
+.rrow.off .rtxt{opacity:.45}
+.rtxt{flex:1;font-weight:600;font-size:14px}
+.rmeta{display:flex;gap:8px;align-items:center;margin-top:3px;font-weight:500;font-size:12px}
+.badge{padding:1px 8px;border-radius:6px;font-size:11px;font-weight:700}
+.badge.hard{background:#1d1b16;color:#fff}.badge.soft{background:var(--accent-soft);color:#28307a}.badge.note{background:var(--soft)}
+.tg.sm{width:38px;height:22px}.tg.sm span:before{width:16px;height:16px}.tg.sm input:checked+span:before{transform:translateX(16px)}
+.days-pick{display:flex;gap:6px;flex-wrap:wrap}
+.days-pick label{cursor:pointer}.days-pick input{display:none}
+.days-pick span{display:block;padding:8px 11px;border-radius:10px;border:1px solid var(--line);font-weight:600;font-size:13px}
+.days-pick input:checked+span{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+@media(max-width:620px){.grid3{grid-template-columns:1fr}}
+.wk-label{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.salle-tag{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;font-weight:700;color:#1d4d33;background:#dff0e6;padding:2px 9px 2px 6px;border-radius:999px}
+.salle-tag i{width:10px;height:10px;border-radius:50%}
+.salle-tag.me{outline:2px solid #2f9e75}
+.tt{font-size:9px;font-weight:800;letter-spacing:.04em;color:var(--muted)}
+.rp-dot{position:absolute;top:5px;right:5px;width:7px;height:7px;border-radius:50%;background:#e3a32c;display:inline-block}
+.legend .rp-dot{position:static}
+.c-SG,.c-CG{background:var(--accent);color:#fff}.c-L{background:transparent;color:var(--muted)}
+
+.ovw{padding:14px}
+.ow{padding:12px 0;border-bottom:1px solid var(--line)} .ow:last-child{border-bottom:0}
+.ow-head{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:8px}
+.ow-t{font-weight:700;font-size:13px;color:var(--muted)}
+.salle-big{display:inline-flex;align-items:center;gap:8px;background:#dff0e6;color:#1d4d33;border-radius:12px;padding:5px 12px 5px 6px;font-weight:700;font-size:14px}
+.salle-big small{display:block;font-size:10px;text-transform:uppercase;letter-spacing:.08em;opacity:.7;line-height:1}
+.salle-big.me{outline:2px solid #2f9e75}
+table.owt{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fixed}
+.owt th{font-size:10.5px;color:var(--muted);font-weight:700;text-transform:uppercase;padding:2px 0;text-align:center}
+.owt th b{font-size:13px;color:var(--ink)} .owt th:first-child{width:86px}
+.owt th.we{color:var(--ink)}
+.owt td{text-align:center;padding:0;height:32px;border-radius:8px;background:var(--card);cursor:pointer}
+.owt td.we{background:var(--soft)}
+.owt td.who{text-align:left;cursor:default;background:transparent;white-space:nowrap;overflow:hidden}
+.owt .who{display:table-cell}.owt .who .avatar{display:inline-grid;vertical-align:middle;margin-right:6px}
+.owt .nm{font-size:13px;font-weight:600;vertical-align:middle}
+.owt tr.mine .nm{color:var(--accent)} .owt tr.mine td.who .avatar{box-shadow:0 0 0 2px var(--card),0 0 0 4px var(--accent)}
+.oc{display:flex;align-items:center;justify-content:center;height:100%;border-radius:8px;font-size:11px;font-weight:700}
+.oc.c-L{background:transparent}
+.c-C,.c-CG.x{background:#d5eef2;color:#155e6b}
+@media(max-width:480px){.ovw{padding:12px 8px}.owt{border-spacing:2px}.owt th:first-child{width:24px}.owt .nm{display:none}.oc{font-size:9.5px}}
+</style>
+</head>
+<body>
+<div id="app"><div class="spin"></div></div>
+
+<script>
+/* ================= CONFIGURATION (à remplir) ================= */
+const CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycbyAVL6hn41XPYjZtKBCtM1UPd_iDtxrybWw9GBb-q-PchhMBo8tGp9S8gDqkribTDDNJg/exec',    // URL de l'application web Apps Script (…/exec)
+  CLIENT_ID: '999636070129-q3bavdsod688k4v6tms41b9et6h9trcf.apps.googleusercontent.com'   // ID client OAuth Google (…apps.googleusercontent.com)
+};
+/* ============================================================= */
+const DEMO = !CONFIG.API_URL || !CONFIG.CLIENT_ID;
+</script>
+<script>
+// ===== MOTEUR DE PLANNING — partagé entre l'interface (mode démo) et Apps Script =====
+// Règles de base :
+//  • Lundi → vendredi (hors férié) : 1 garde de nuit + 1 interne de salle (le même du lundi au vendredi).
+//  • Samedi : 24 h par un seul interne = astreinte (matin) + demi-garde (après-midi) + garde (nuit).
+//  • Dimanche et jours fériés : 24 h par un seul interne = garde de jour + garde de nuit.
+//  • Repos de sécurité le lendemain de toute garde.
+//  • Règles spécifiques (par interne ou pour tous) ajoutées par l'administrateur.
+var Engine = (function () {
+  var JOUR = 864e5;
+  function pad(n) { return (n < 10 ? '0' : '') + n; }
+  function parse(s) { var p = String(s).split('-'); return Date.UTC(+p[0], +p[1] - 1, +p[2]); }
+  function iso(ms) { var d = new Date(ms); return d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate()); }
+  function addDays(s, n) { return iso(parse(s) + n * JOUR); }
+  function listDays(a, b) { var out = []; for (var t = parse(a); t <= parse(b); t += JOUR) out.push(iso(t)); return out; }
+  function dow(s) { return new Date(parse(s)).getUTCDay(); } // 0 = dimanche
+  function lundi(s) { return addDays(s, -((dow(s) + 6) % 7)); }
+  function feries(cfg) { return String(cfg.feries || '').split(/[,;\s]+/).filter(Boolean); }
+  function isWE(s, fer) { var d = dow(s); return d === 0 || d === 6 || fer.indexOf(s) >= 0; }
+  function dayType(s, fer) { var w = dow(s); if (w === 0 || fer.indexOf(s) >= 0) return 'dimanche'; if (w === 6) return 'samedi'; return 'nuit'; }
+  function isSalleDay(s, fer) { var w = dow(s); return w >= 1 && w <= 5 && fer.indexOf(s) < 0; }
+  function poids(cfg, t) {
+    var v = parseFloat(t === 'nuit' ? cfg.poidsNuit : t === 'samedi' ? cfg.poidsSamedi : cfg.poidsDimanche);
+    return isNaN(v) ? (t === 'nuit' ? 1 : 2) : v;
+  }
+  function rng(seed) {
+    return function () {
+      seed = (seed + 0x6D2B79F5) | 0;
+      var t = Math.imul(seed ^ (seed >>> 15), 1 | seed);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function statut(saisies, e, d) { var x = saisies && saisies[e] && saisies[e][d]; return (x && x.s) || 'dispo'; }
+  function variance(a) {
+    if (!a.length) return 0;
+    var m = a.reduce(function (x, y) { return x + y; }, 0) / a.length;
+    return a.reduce(function (x, y) { return x + (y - m) * (y - m); }, 0) / a.length;
+  }
+
+  var TYPES = {
+    nuit: { court: 'Nuit', label: 'Garde de nuit' },
+    samedi: { court: '24 h', label: 'Samedi 24 h : astreinte + demi-garde + garde' },
+    dimanche: { court: '24 h', label: '24 h : garde de jour + garde de nuit' }
+  };
+
+  // ---------- Règles spécifiques ----------
+  var RULE_TYPES = {
+    max_gardes:        { label: 'Maximum de gardes', cible: 'garde', champs: ['n', 'unite'] },
+    min_gardes:        { label: 'Minimum de gardes sur la période', cible: 'garde', champs: ['n'] },
+    max_weekends:      { label: 'Maximum de gardes de week-end / férié', cible: 'garde', champs: ['n'] },
+    ecart_min:         { label: 'Écart minimum entre deux gardes', cible: 'garde', champs: ['n'] },
+    jours_interdits:   { label: 'Pas de garde certains jours', cible: 'garde', champs: ['jours'] },
+    garde_imposee:     { label: 'Garde imposée à une date', cible: 'garde', champs: ['date'], individuel: true },
+    pas_garde_date:    { label: 'Pas de garde à une date', cible: 'garde', champs: ['date'] },
+    pas_salle:         { label: 'Ne fait pas la salle', cible: 'salle', champs: [] },
+    max_salle:         { label: 'Maximum de semaines de salle', cible: 'salle', champs: ['n'] },
+    salle_semaine:     { label: 'Fait la salle la semaine du…', cible: 'salle', champs: ['date'], individuel: true },
+    pas_salle_semaine: { label: 'Ne fait pas la salle la semaine du…', cible: 'salle', champs: ['date'] },
+    pas_consult:       { label: 'Ne fait pas de consultation', cible: 'consult', champs: [] },
+    consult_imposee:   { label: 'Consultation imposée à une date', cible: 'consult', champs: ['date'], individuel: true },
+    note:              { label: 'Note libre (non appliquée automatiquement)', cible: 'note', champs: ['texte'] }
+  };
+  var JOURS_C = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  var UNITES = { periode: 'sur la période', semaine: 'par semaine', mois: 'par mois' };
+  function frDate(s) { if (!s) return '?'; var p = s.split('-'); return +p[2] + '/' + p[1]; }
+  function decrire(r, nom) {
+    var q = r.qui === '*' ? 'Tous' : nom(r.qui), n = r.n;
+    switch (r.type) {
+      case 'max_gardes': return q + ' : au plus ' + n + ' garde(s) ' + (UNITES[r.unite] || UNITES.periode);
+      case 'min_gardes': return q + ' : au moins ' + n + ' garde(s) sur la période';
+      case 'max_weekends': return q + ' : au plus ' + n + ' garde(s) de week-end / férié';
+      case 'ecart_min': return q + ' : au moins ' + n + ' jours entre deux gardes';
+      case 'jours_interdits': return q + ' : pas de garde le ' + (r.jours || []).map(function (j) { return JOURS_C[j]; }).join(', ');
+      case 'garde_imposee': return q + ' : de garde le ' + frDate(r.date);
+      case 'pas_garde_date': return q + ' : pas de garde le ' + frDate(r.date);
+      case 'pas_salle': return q + ' : ne fait pas la salle';
+      case 'max_salle': return q + ' : au plus ' + n + ' semaine(s) de salle';
+      case 'salle_semaine': return q + ' : salle la semaine du ' + frDate(lundi(r.date || '2000-01-03'));
+      case 'pas_salle_semaine': return q + ' : pas de salle la semaine du ' + frDate(lundi(r.date || '2000-01-03'));
+      case 'pas_consult': return q + ' : pas de consultation';
+      case 'consult_imposee': return q + ' : consultation le ' + frDate(r.date);
+      case 'note': return q + ' : ' + (r.texte || '');
+    }
+    return q + ' : règle inconnue';
+  }
+
+  // ---------- Contexte ----------
+  function contexte(cfg, emails, saisies, regles) {
+    var fer = feries(cfg), days = listDays(cfg.debut, cfg.fin), idx = {}, type = {}, weeks = [], wk = {};
+    days.forEach(function (d, i) {
+      idx[d] = i; type[d] = dayType(d, fer);
+      if (isSalleDay(d, fer)) { var m = lundi(d); if (!wk[m]) { wk[m] = { lundi: m, jours: [] }; weeks.push(wk[m]); } wk[m].jours.push(d); }
+    });
+    var R = (regles || []).filter(function (r) { return r && r.actif !== false && r.type !== 'note' && RULE_TYPES[r.type]; })
+      .map(function (r) { var o = {}; for (var k in r) o[k] = r[k]; o.n = parseInt(r.n, 10); return o; });
+    var rp = {};
+    emails.forEach(function (e) { rp[e] = R.filter(function (r) { return r.qui === '*' || r.qui === e; }); });
+    return { cfg: cfg, fer: fer, days: days, idx: idx, type: type, weeks: weeks, emails: emails, saisies: saisies || {}, R: R, rp: rp };
+  }
+  function nouvSt() { return { n: 0, we: 0, dim: 0, charge: 0, last: -99, pw: {}, pm: {} }; }
+  function ajoute(c, st, d, i) {
+    var t = c.type[d]; st.n++; st.charge += poids(c.cfg, t);
+    if (t !== 'nuit') st.we++; if (t === 'dimanche') st.dim++;
+    st.last = i; var w = lundi(d), m = d.slice(0, 7);
+    st.pw[w] = (st.pw[w] || 0) + 1; st.pm[m] = (st.pm[m] || 0) + 1;
+  }
+  // Violations des règles de garde si e prend la garde du jour d
+  function violGarde(c, e, d, i, st) {
+    var v = { dure: 0, souple: 0, bonus: 0 };
+    c.rp[e].forEach(function (r) {
+      var bad = false;
+      switch (r.type) {
+        case 'max_gardes':
+          if (r.unite === 'semaine') bad = (st.pw[lundi(d)] || 0) >= r.n;
+          else if (r.unite === 'mois') bad = (st.pm[d.slice(0, 7)] || 0) >= r.n;
+          else bad = st.n >= r.n; break;
+        case 'max_weekends': bad = c.type[d] !== 'nuit' && st.we >= r.n; break;
+        case 'ecart_min': bad = i - st.last < r.n; break;
+        case 'jours_interdits': bad = (r.jours || []).map(Number).indexOf(dow(d)) >= 0; break;
+        case 'pas_garde_date': bad = r.date === d; break;
+        case 'min_gardes': if (st.n < r.n) v.bonus -= 15; break;
+        case 'garde_imposee': if (r.date === d && r.qui === e) v.bonus -= 60; break;
+      }
+      if (bad) { if (r.force === 'souple') v.souple++; else v.dure++; }
+    });
+    return v;
+  }
+  function violSalle(c, e, w, nb) {
+    var v = { dure: 0, souple: 0, bonus: 0 };
+    c.rp[e].forEach(function (r) {
+      var bad = false;
+      switch (r.type) {
+        case 'pas_salle': bad = true; break;
+        case 'max_salle': bad = nb >= r.n; break;
+        case 'pas_salle_semaine': bad = lundi(r.date) === w.lundi; break;
+        case 'salle_semaine': if (r.qui === e && lundi(r.date) === w.lundi) v.bonus -= 80; break;
+      }
+      if (bad) { if (r.force === 'souple') v.souple++; else v.dure++; }
+    });
+    return v;
+  }
+
+  // ---------- Salle : un interne par semaine, du lundi au vendredi ----------
+  function placerSalle(c, rnd, gImp) {
+    var owner = {}, cnt = {};
+    c.emails.forEach(function (e) { cnt[e] = 0; });
+    c.R.forEach(function (r) {
+      if (r.type === 'salle_semaine' && r.force !== 'souple' && cnt[r.qui] != null) { owner[lundi(r.date)] = r.qui; }
+    });
+    c.weeks.forEach(function (w) { if (owner[w.lundi]) cnt[owner[w.lundi]]++; });
+    var ordre = c.weeks.slice().sort(function () { return rnd() - 0.5; });
+    ordre.forEach(function (w) {
+      if (owner[w.lundi]) return;
+      var best = null, bs = Infinity, prevW = addDays(w.lundi, -7), nextW = addDays(w.lundi, 7);
+      c.emails.forEach(function (e) {
+        var abs = 0, ev = 0, conflit = 0;
+        w.jours.forEach(function (d) {
+          var s = statut(c.saisies, e, d);
+          if (s === 'indispo') abs++; else if (s === 'eviter') ev++; else if (s === 'consult') ev += 0.5;
+          if (gImp[addDays(d, -1)] === e || gImp[d] === e) conflit++;
+        });
+        var v = violSalle(c, e, w, cnt[e]);
+        var sc = abs * 300 + conflit * 300 + v.dure * 1000 + v.souple * 60 + v.bonus + ev * 8 + cnt[e] * 40
+          + ((owner[prevW] === e || owner[nextW] === e) ? 35 : 0) + rnd() * 25;
+        if (sc < bs) { bs = sc; best = e; }
+      });
+      owner[w.lundi] = best; if (best) cnt[best]++;
+    });
+    var salle = {};
+    c.weeks.forEach(function (w) { w.jours.forEach(function (d) { salle[d] = owner[w.lundi] || ''; }); });
+    return salle;
+  }
+  // Remplacement ponctuel (cas exceptionnel) : le titulaire est absent ce jour-là, ou de repos
+  function remplacer(c, salle, g) {
+    c.weeks.forEach(function (w) {
+      w.jours.forEach(function (d) {
+        var e = salle[d], veille = addDays(d, -1);
+        if (e && statut(c.saisies, e, d) !== 'indispo' && g[veille] !== e && g[d] !== e) return;
+        var best = '', bs = Infinity;
+        c.emails.forEach(function (x) {
+          if (x === e || statut(c.saisies, x, d) === 'indispo' || g[veille] === x || g[d] === x) return;
+          var sc = (statut(c.saisies, x, d) === 'eviter' ? 20 : 0) + violSalle(c, x, w, 0).dure * 100;
+          if (sc < bs) { bs = sc; best = x; }
+        });
+        salle[d] = best;
+      });
+    });
+  }
+
+  // ---------- Gardes ----------
+  function gardesImposees(c) {
+    var g = {};
+    c.R.forEach(function (r) { if (r.type === 'garde_imposee' && r.force !== 'souple' && c.idx[r.date] != null && c.rp[r.qui]) g[r.date] = r.qui; });
+    return g;
+  }
+  function bloque(c, e, d, i, g, salle) {
+    var s = statut(c.saisies, e, d);
+    if (s === 'indispo' || s === 'pas_garde') return true;
+    var prev = c.days[i - 1], next = c.days[i + 1];
+    if (prev && g[prev] === e) return true;               // pas deux gardes d'affilée
+    if (next && g[next] === e) return true;
+    if (next && salle[next] === e) return true;           // repos de sécurité tomberait sur un jour de salle
+    if (salle[d] === e && c.cfg.gardeApresSalle !== 'oui') return true; // salle le jour puis garde la nuit
+    if (next && statut(c.saisies, e, next) === 'indispo' && c.cfg.reposSurAbsence === 'non') return true;
+    return false;
+  }
+  function placerGardes(c, salle, rnd, gImp) {
+    var g = {}, st = {};
+    for (var k in gImp) g[k] = gImp[k];
+    c.emails.forEach(function (e) { st[e] = nouvSt(); });
+    c.days.forEach(function (d, i) {
+      if (g[d]) { if (st[g[d]]) ajoute(c, st[g[d]], d, i); return; }
+      var t = c.type[d], best = '', bs = Infinity;
+      c.emails.forEach(function (e) {
+        if (bloque(c, e, d, i, g, salle)) return;
+        var x = st[e], v = violGarde(c, e, d, i, x);
+        if (v.dure) return;
+        var s = statut(c.saisies, e, d), gap = i - x.last;
+        var sc = x.charge * 10 + (t !== 'nuit' ? x.we * 15 : 0) + (t === 'dimanche' ? x.dim * 12 : 0)
+          + (s === 'souhait' ? -45 : 0) + (s === 'eviter' ? 40 : 0) + (s === 'consult' ? 12 : 0)
+          + (gap <= 2 ? 30 : gap <= 3 ? 12 : gap <= 4 ? 4 : 0)
+          + v.souple * 50 + v.bonus + rnd() * 8;
+        if (sc < bs) { bs = sc; best = e; }
+      });
+      g[d] = best;
+      if (best) ajoute(c, st[best], d, i);
+    });
+    return g;
+  }
+
+  // ---------- Consultations (facultatives, objectif : N jours par mois et par interne) ----------
+  function consultCible(cfg) { var n = parseInt(cfg.consultMin, 10); return isNaN(n) ? 2 : Math.max(0, n); }
+  function moisPleins(c) {
+    var m = {};
+    c.weeks.forEach(function (w) { w.jours.forEach(function (d) { var k = d.slice(0, 7); m[k] = (m[k] || 0) + 1; }); });
+    return Object.keys(m).filter(function (k) { return m[k] >= 10; });
+  }
+  function placerConsult(c, g, salle, rnd) {
+    var cons = {}, cfg = c.cfg;
+    if (cfg.consultActif === 'non') return cons;
+    var cible = consultCible(cfg), parJour = Math.max(1, parseInt(cfg.consultParJour, 10) || 1);
+    var exclu = {}, nb = {};
+    c.emails.forEach(function (e) { exclu[e] = c.rp[e].some(function (r) { return r.type === 'pas_consult' && r.force !== 'souple'; }); nb[e] = {}; });
+    var libre = function (e, d) {
+      var i = c.idx[d], veille = c.days[i - 1], s = statut(c.saisies, e, d);
+      if (s === 'indispo' || salle[d] === e || g[d] === e || (veille && g[veille] === e)) return false;
+      return (cons[d] || []).indexOf(e) < 0 && (cons[d] || []).length < parJour;
+    };
+    var pose = function (e, d) { (cons[d] = cons[d] || []).push(e); var k = d.slice(0, 7); nb[e][k] = (nb[e][k] || 0) + 1; };
+    c.R.forEach(function (r) { if (r.type === 'consult_imposee' && r.force !== 'souple' && c.rp[r.qui] && salle[r.date] != null && libre(r.qui, r.date)) pose(r.qui, r.date); });
+    var mois = {};
+    c.weeks.forEach(function (w) { w.jours.forEach(function (d) { (mois[d.slice(0, 7)] = mois[d.slice(0, 7)] || []).push(d); }); });
+    Object.keys(mois).forEach(function (k) {
+      var jours = mois[k];
+      for (var tour = 0; tour < cible; tour++) {
+        c.emails.slice().sort(function () { return rnd() - 0.5; }).forEach(function (e) {
+          if (exclu[e] || (nb[e][k] || 0) > tour) return;
+          var best = null, bs = Infinity, mes = [];
+          Object.keys(cons).forEach(function (d) { if (cons[d].indexOf(e) >= 0) mes.push(c.idx[d]); });
+          jours.forEach(function (d) {
+            if (!libre(e, d)) return;
+            var s = statut(c.saisies, e, d), i = c.idx[d], prox = 0;
+            mes.forEach(function (j) { var dd = Math.abs(i - j); if (dd < 7) prox += (7 - dd) * 6; });
+            var sc = (s === 'consult' ? -60 : 0) + (s === 'eviter' ? 50 : 0) + (s === 'souhait' ? 5 : 0)
+              + (cons[d] ? cons[d].length * 15 : 0) + prox
+              + (c.rp[e].some(function (r) { return r.type === 'pas_consult'; }) ? 80 : 0) + rnd() * 10;
+            if (sc < bs) { bs = sc; best = d; }
+          });
+          if (best) pose(e, best);
+        });
+      }
+    });
+    // souhaits de consultation restants : ajoutés s'il reste de la place
+    c.emails.forEach(function (e) {
+      if (exclu[e]) return;
+      c.weeks.forEach(function (w) { w.jours.forEach(function (d) { if (statut(c.saisies, e, d) === 'consult' && libre(e, d)) pose(e, d); }); });
+    });
+    return cons;
+  }
+
+  // ---------- Contrôle des règles a posteriori ----------
+  function controler(c, g, salle, cons) {
+    cons = cons || {};
+    var out = [], st = {};
+    c.emails.forEach(function (e) { st[e] = nouvSt(); st[e].dates = []; });
+    c.days.forEach(function (d, i) { var e = g[d]; if (e && st[e]) { ajoute(c, st[e], d, i); st[e].dates.push(i); } });
+    var semSalle = {};
+    c.emails.forEach(function (e) { semSalle[e] = {}; });
+    Object.keys(salle).forEach(function (d) { if (salle[d] && semSalle[salle[d]]) semSalle[salle[d]][lundi(d)] = 1; });
+    c.R.forEach(function (r) {
+      var qui = r.qui === '*' ? c.emails : [r.qui];
+      qui.forEach(function (e) {
+        var s = st[e]; if (!s) return;
+        var bad = [];
+        switch (r.type) {
+          case 'max_gardes':
+            if (r.unite === 'semaine') { for (var w in s.pw) if (s.pw[w] > r.n) bad.push(w); }
+            else if (r.unite === 'mois') { for (var m in s.pm) if (s.pm[m] > r.n) bad.push(m + '-01'); }
+            else if (s.n > r.n) bad.push(''); break;
+          case 'min_gardes': if (s.n < r.n) bad.push(''); break;
+          case 'max_weekends': if (s.we > r.n) bad.push(''); break;
+          case 'ecart_min': for (var k = 1; k < s.dates.length; k++) if (s.dates[k] - s.dates[k - 1] < r.n) bad.push(c.days[s.dates[k]]); break;
+          case 'jours_interdits': s.dates.forEach(function (i) { if ((r.jours || []).map(Number).indexOf(dow(c.days[i])) >= 0) bad.push(c.days[i]); }); break;
+          case 'garde_imposee': if (c.idx[r.date] != null && g[r.date] !== e) bad.push(r.date); break;
+          case 'pas_garde_date': if (g[r.date] === e) bad.push(r.date); break;
+          case 'pas_salle': if (Object.keys(semSalle[e]).length) bad.push(''); break;
+          case 'max_salle': if (Object.keys(semSalle[e]).length > r.n) bad.push(''); break;
+          case 'salle_semaine': c.weeks.forEach(function (w) { if (w.lundi === lundi(r.date) && w.jours.some(function (d) { return salle[d] !== e; })) bad.push(w.lundi); }); break;
+          case 'pas_salle_semaine': if (semSalle[e][lundi(r.date)]) bad.push(lundi(r.date)); break;
+          case 'pas_consult': Object.keys(cons).forEach(function (d) { if (cons[d].indexOf(e) >= 0) bad.push(d); }); break;
+          case 'consult_imposee': if (c.idx[r.date] != null && (cons[r.date] || []).indexOf(e) < 0) bad.push(r.date); break;
+        }
+        bad.forEach(function (d) { out.push({ regle: r, email: e, date: d, force: r.force === 'souple' ? 'souple' : 'dure' }); });
+      });
+    });
+    return out;
+  }
+
+  function cout(c, g, salle) {
+    var ch = {}, we = {}, dim = {}, sw = {}, cost = 0;
+    c.emails.forEach(function (e) { ch[e] = 0; we[e] = 0; dim[e] = 0; sw[e] = {}; });
+    c.days.forEach(function (d) {
+      var e = g[d], t = c.type[d];
+      if (!e) { cost += 1000; return; }
+      ch[e] += poids(c.cfg, t); if (t !== 'nuit') we[e]++; if (t === 'dimanche') dim[e]++;
+      var s = statut(c.saisies, e, d); if (s === 'eviter') cost += 40;
+    });
+    c.emails.forEach(function (e) { c.days.forEach(function (d) { if (statut(c.saisies, e, d) === 'souhait' && g[d] !== e) cost += 20; }); });
+    Object.keys(salle).forEach(function (d) {
+      var e = salle[d]; if (!e) { cost += 800; return; }
+      sw[e][lundi(d)] = 1; if (statut(c.saisies, e, d) === 'eviter') cost += 8;
+    });
+    var nbSalle = c.emails.map(function (e) { return Object.keys(sw[e]).length; });
+    cost += variance(c.emails.map(function (e) { return ch[e]; })) * 30;
+    cost += variance(c.emails.map(function (e) { return we[e]; })) * 40;
+    cost += variance(c.emails.map(function (e) { return dim[e]; })) * 30;
+    cost += variance(nbSalle) * 80;
+    controler(c, g, salle).forEach(function (v) { cost += v.force === 'souple' ? 60 : 600; });
+    return cost;
+  }
+
+  /** Génère salle + gardes : nombreux essais aléatoires, on garde le meilleur. */
+  function generer(cfg, emails, saisies, regles, opts) {
+    opts = opts || {};
+    var c = contexte(cfg, emails, saisies, regles), gImp = gardesImposees(c);
+    var essais = opts.essais || 300, seed = opts.seed || (Date.now() % 100000), best = null;
+    for (var r = 0; r < essais; r++) {
+      var rnd = rng(seed + r * 7919);
+      var salle = placerSalle(c, rnd, gImp);
+      var g = placerGardes(c, salle, rnd, gImp);
+      remplacer(c, salle, g);
+      var k = cout(c, g, salle);
+      if (!best || k < best.k) best = { k: k, g: g, salle: salle };
+    }
+    var gardes = {};
+    Object.keys(best.g).forEach(function (d) { gardes[d] = best.g[d] ? [best.g[d]] : []; });
+    var consult = placerConsult(c, best.g, best.salle, rng(seed + 1));
+    return { gardes: gardes, salle: best.salle, consult: consult };
+  }
+
+  /** Déduit la journée de chacun et les compteurs. aff = { gardes: {date: [email]}, salle: {date: email} } */
+  function deriver(cfg, internes, saisies, aff, regles) {
+    var emails = internes.map(function (i) { return i.email; });
+    var c = contexte(cfg, emails, saisies, regles), nomDe = {};
+    internes.forEach(function (i) { nomDe[i.email] = i.nom; });
+    var nom = function (e) { return nomDe[e] || e; };
+    var g = {}, salle = {}, cons = aff.consult || {};
+    c.days.forEach(function (d) {
+      g[d] = ((aff.gardes || {})[d] || [])[0] || '';
+      if (isSalleDay(d, c.fer)) salle[d] = (aff.salle || {})[d] || '';
+    });
+    var stats = {}, alertes = [], jours = [], titulaire = {};
+    c.weeks.forEach(function (w) {
+      var cnt = {}; w.jours.forEach(function (d) { if (salle[d]) cnt[salle[d]] = (cnt[salle[d]] || 0) + 1; });
+      var t = '', m = 0; for (var e in cnt) if (cnt[e] > m) { m = cnt[e]; t = e; }
+      titulaire[w.lundi] = t;
+    });
+    emails.forEach(function (e) { stats[e] = { nuits: 0, samedis: 0, dimanches: 0, gardes: 0, astreintes: 0, demiGardes: 0, charge: 0, semainesSalle: 0, joursSalle: 0, consults: 0, consultMois: {}, souhaits: 0, souhaitsOk: 0, eviter: 0 }; });
+    c.weeks.forEach(function (w) { if (titulaire[w.lundi] && stats[titulaire[w.lundi]]) stats[titulaire[w.lundi]].semainesSalle++; });
+    c.days.forEach(function (d, i) {
+      var t = c.type[d], ge = g[d], veille = i > 0 ? g[c.days[i - 1]] : '', sd = salle[d], codes = {};
+      if (!ge) alertes.push({ date: d, type: 'trou', msg: 'Garde non pourvue' });
+      if (sd === '') alertes.push({ date: d, type: 'trou', msg: 'Salle non pourvue' });
+      emails.forEach(function (e) {
+        var s = statut(c.saisies, e, d), st = stats[e], code;
+        if (s === 'souhait') { st.souhaits++; if (ge === e) st.souhaitsOk++; }
+        var enSalle = sd === e, enGarde = ge === e, enCons = (cons[d] || []).indexOf(e) >= 0;
+        if (enCons) {
+          st.consults++; st.consultMois[d.slice(0, 7)] = (st.consultMois[d.slice(0, 7)] || 0) + 1;
+          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en consultation le lendemain de sa garde' });
+          if (enSalle) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est à la fois en salle et en consultation' });
+          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en consultation alors qu\'absent' });
+        }
+        if (enGarde) {
+          st.charge += poids(c.cfg, t);
+          if (t === 'nuit') { st.nuits++; st.gardes++; }
+          else if (t === 'samedi') { st.samedis++; st.astreintes++; st.demiGardes++; st.gardes++; }
+          else { st.dimanches++; st.gardes += 2; }
+          if (s === 'eviter') st.eviter++;
+          if (s === 'indispo' || s === 'pas_garde') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est de garde alors qu\'indisponible' });
+          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' enchaîne deux gardes' });
+        }
+        if (enSalle) {
+          st.joursSalle++;
+          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en salle le lendemain de sa garde' });
+          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en salle alors qu\'absent' });
+          if (enGarde && c.cfg.gardeApresSalle !== 'oui') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' fait la salle puis la garde' });
+        }
+        if (enSalle && enGarde) code = 'SG';
+        else if (enCons && enGarde) code = 'CG';
+        else if (enGarde) code = 'G';
+        else if (enSalle) code = 'S';
+        else if (enCons) code = 'C';
+        else if (veille === e) code = 'R';
+        else if (s === 'indispo') code = 'A';
+        else code = 'L';
+        codes[e] = code;
+      });
+      var tit = sd != null ? titulaire[lundi(d)] : '';
+      jours.push({ date: d, type: t, we: t !== 'nuit', garde: ge, salle: sd == null ? null : sd, consult: (cons[d] || []).slice(), remplacement: !!(sd && tit && sd !== tit), codes: codes });
+    });
+    if (c.cfg.consultActif !== 'non') {
+      var cible = consultCible(c.cfg);
+      moisPleins(c).forEach(function (k) {
+        emails.forEach(function (e) {
+          var n = stats[e].consultMois[k] || 0;
+          if (n < cible && !c.rp[e].some(function (r) { return r.type === 'pas_consult'; }))
+            alertes.push({ date: k + '-01', type: 'preference', msg: 'Consultations : ' + nom(e) + ' n\'en a que ' + n + ' en ' + ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'][+k.slice(5) - 1] + ' (objectif ' + cible + ')' });
+        });
+      });
+    }
+    controler(c, g, salle, cons).forEach(function (v) {
+      alertes.push({ date: v.date || '', type: v.force === 'souple' ? 'preference' : 'regle', msg: (v.force === 'souple' ? 'Préférence non respectée — ' : 'Règle non respectée — ') + decrire(v.regle, nom) + (v.regle.qui === '*' ? ' (' + nom(v.email) + ')' : '') });
+    });
+    return { jours: jours, stats: stats, alertes: alertes, titulaires: titulaire };
+  }
+
+  return {
+    listDays: listDays, addDays: addDays, dow: dow, lundi: lundi, isWE: isWE, feries: feries, dayType: dayType, isSalleDay: isSalleDay,
+    TYPES: TYPES, RULE_TYPES: RULE_TYPES, decrire: decrire, generer: generer, deriver: deriver, statut: statut
+  };
+})();
+
+</script>
+<script>
+const STATUTS = {
+  souhait:   { label: 'Souhait de garde', short: 'Souhait garde', icon: '☾', color: 'var(--souhait)' },
+  dispo:     { label: 'Disponible', short: 'Dispo', icon: '', color: 'var(--dispo)' },
+  consult:   { label: 'Souhait de consultation', short: 'Consult.', icon: '◆', color: 'var(--consult)' },
+  eviter:    { label: 'Éviter si possible', short: 'Éviter', icon: '~', color: 'var(--eviter)' },
+  pas_garde: { label: 'Pas de garde', short: 'Pas de garde', icon: '⊘', color: 'var(--pasgarde)' },
+  indispo:   { label: 'Ne pas travailler', short: 'Absent', icon: '✕', color: 'var(--indispo)' }
+};
+const CODES = { G: 'Garde', SG: 'Salle + nuit', CG: 'Consult. + nuit', C: 'Consultation', R: 'Repos', S: 'Salle', A: 'Absent', L: 'Libre' };
+const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+
+const S = { token: null, me: null, config: null, internes: [], saisies: {}, note: '', planning: null,
+  regles: [], tab: 'dispo', brush: 'souhait', pfilter: 'ensemble', ov: null, saveState: 'ok', dirty: false };
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const initials = n => String(n || '?').split(/[\s.-]+/).filter(Boolean).map(w => w[0]).join('').slice(0, 2).toUpperCase();
+const nomDe = e => (S.internes.find(i => i.email === e) || { nom: e }).nom;
+const couleurDe = e => (S.internes.find(i => i.email === e) || { couleur: '#888' }).couleur;
+const dlabel = (d, long) => { const p = d.split('-'); const j = JOURS[Engine.dow(d)]; return long ? `${j} ${+p[2]} ${MOIS[+p[1] - 1]}` : `${j.slice(0, 3)}. ${+p[2]} ${MOIS[+p[1] - 1]}`; };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+function toast(m) { const t = document.createElement('div'); t.className = 'toast'; t.textContent = m; document.body.appendChild(t); setTimeout(() => t.remove(), 2600); }
+
+/* ---------------- API ---------------- */
+async function api(action, data = {}) {
+  if (DEMO) return Mock.call(action, data);
+  const r = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, data, token: S.token }) });
+  const j = await r.json();
+  if (!j.ok) {
+    if (/^AUTH:/.test(j.error)) { logout(j.error.replace(/^AUTH:\s*/, '')); }
+    throw new Error(j.error.replace(/^AUTH:\s*/, ''));
+  }
+  return j.data;
+}
+
+/* ---------------- Mode démo (données locales, aucune connexion) ---------------- */
+const Mock = (() => {
+  const KEY = 'planning-demo-v4';
+  function seed() {
+    const internes = [
+      { email: 'anthony@demo', nom: 'Anthony', role: 'admin', couleur: '#4b5bd6' },
+      { email: 'camille@demo', nom: 'Camille', role: 'interne', couleur: '#d1495b' },
+      { email: 'lucas@demo', nom: 'Lucas', role: 'interne', couleur: '#2f9e75' },
+      { email: 'ines@demo', nom: 'Inès', role: 'interne', couleur: '#e08e1b' },
+      { email: 'hugo@demo', nom: 'Hugo', role: 'interne', couleur: '#8a5cc7' }
+    ];
+    const config = { titre: 'Planning des internes', debut: '2027-02-01', fin: '2027-05-02', dateLimite: '2027-01-15', feries: '2027-03-29, 2027-05-01', poidsNuit: '1', poidsSamedi: '2', poidsDimanche: '2', gardeApresSalle: 'non', consultActif: 'oui', consultMin: '2', consultParJour: '1', visibilite: 'absences', verrou: 'non', publie: 'non' };
+    const saisies = {}, days = Engine.listDays(config.debut, config.fin);
+    internes.slice(1).forEach((it, k) => {
+      saisies[it.email] = {};
+      days.forEach((d, i) => { const r = (i * 7 + k * 13) % 23; if (r === 0) saisies[it.email][d] = { s: 'souhait' }; else if (r === 1) saisies[it.email][d] = { s: 'indispo', c: 'Congé' }; else if (r === 2) saisies[it.email][d] = { s: 'eviter' }; else if (r === 5 && Engine.isSalleDay(d, [])) saisies[it.email][d] = { s: 'consult' }; });
+    });
+    const regles = [{ id: 'R1', type: 'max_gardes', qui: 'lucas@demo', n: 5, unite: 'mois', force: 'souple', actif: true }];
+    return { internes, config, saisies, notes: {}, maj: {}, aff: null, regles };
+  }
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || seed(); } catch (e) { return seed(); } };
+  const save = db => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} };
+  const wait = ms => new Promise(r => setTimeout(r, ms));
+  const plan = db => db.aff ? Engine.deriver(db.config, db.internes, db.saisies, db.aff, db.regles) : null;
+  async function call(action, d) {
+    await wait(250); const db = load(); const me = db.internes[0];
+    switch (action) {
+      case 'init': { save(db); const vis = db.config.visibilite || 'absences', ok = vis === 'tout' ? ['souhait', 'consult', 'eviter', 'pas_garde', 'indispo'] : ['indispo'], equipe = {};
+        if (vis !== 'non') Object.keys(db.saisies).forEach(e => { if (e === me.email) return; equipe[e] = {}; Object.entries(db.saisies[e]).forEach(([d, v]) => { if (ok.includes(v.s)) equipe[e][d] = { s: v.s }; }); });
+        return { me, config: db.config, internes: db.internes, saisies: db.saisies[me.email] || {}, note: db.notes[me.email] || '', planning: plan(db), regles: db.regles, equipe: vis === 'non' ? null : equipe }; }
+      case 'saveSaisies': db.saisies[me.email] = d.saisies; db.notes[me.email] = d.note; db.maj[me.email] = Date.now(); save(db); return { saved: true };
+      case 'getPlanning': return plan(db);
+      case 'adminOverview': return { config: db.config, internes: db.internes, saisies: db.saisies, notes: db.notes, maj: db.maj, regles: db.regles };
+      case 'adminSaveConfig': Object.assign(db.config, d); save(db); return db.config;
+      case 'adminSaveInternes': db.internes = d.internes; save(db); return db.internes;
+      case 'adminSaveRegles': db.regles = d.regles.map((r, k) => Object.assign({}, r, { id: r.id || 'R' + Date.now() + k })); save(db); return db.regles;
+      case 'adminGenerate': await wait(50); db.aff = Engine.generer(db.config, db.internes.map(i => i.email), db.saisies, db.regles, { essais: 250 }); save(db); return plan(db);
+      case 'adminSetJour': {
+        const a = db.aff || { gardes: {}, salle: {} };
+        if ('garde' in d) a.gardes[d.date] = d.garde ? [d.garde] : [];
+        if ('salle' in d) { const fer = Engine.feries(db.config); (d.salleSemaine ? [0, 1, 2, 3, 4].map(k => Engine.addDays(Engine.lundi(d.date), k)) : [d.date]).forEach(x => { if (Engine.isSalleDay(x, fer) && x >= db.config.debut && x <= db.config.fin) a.salle[x] = d.salle; }); }
+        if (Array.isArray(d.consult)) { a.consult = a.consult || {}; a.consult[d.date] = d.consult; }
+        db.aff = a; save(db); return plan(db);
+      }
+      case 'reset': localStorage.removeItem(KEY); return true;
+    }
+  }
+  return { call };
+})();
+
+/* ---------------- Connexion Google ---------------- */
+function jwtExp(t) { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000; } catch (e) { return 0; } }
+function start() {
+  if (DEMO) return boot();
+  const t = localStorage.getItem('pl_token');
+  if (t && jwtExp(t) > Date.now() + 60000) { S.token = t; return boot(); }
+  showLogin();
+}
+function showLogin(msg) {
+  $('#app').innerHTML = `<div class="login"><div class="box">
+    <div class="logo">P</div>
+    <h1>Planning<br>des internes</h1>
+    <p class="muted">Gardes et salle · février → mai 2027.<br>Connecte-toi avec le compte Google que tu as communiqué.</p>
+    ${msg ? `<div class="banner err">${esc(msg)}</div>` : ''}
+    <div id="gbtn"><div class="spin" style="margin:6px auto"></div></div>
+  </div></div>`;
+  const tryInit = () => {
+    if (!window.google || !google.accounts) return setTimeout(tryInit, 150);
+    google.accounts.id.initialize({ client_id: CONFIG.CLIENT_ID, auto_select: true, callback: r => { S.token = r.credential; localStorage.setItem('pl_token', r.credential); boot(); } });
+    $('#gbtn').innerHTML = '';
+    google.accounts.id.renderButton($('#gbtn'), { theme: 'filled_black', size: 'large', shape: 'pill', text: 'continue_with', locale: 'fr' });
+    google.accounts.id.prompt();
+  };
+  tryInit();
+}
+function logout(msg) {
+  localStorage.removeItem('pl_token'); S.token = null;
+  if (window.google && google.accounts) google.accounts.id.disableAutoSelect();
+  showLogin(msg);
+}
+
+async function boot() {
+  $('#app').innerHTML = '<div class="spin"></div>';
+  try {
+    const d = await api('init');
+    Object.assign(S, { me: d.me, config: d.config, internes: d.internes, saisies: d.saisies || {}, note: d.note || '', planning: d.planning, regles: d.regles || [], equipe: d.equipe || null });
+    render();
+  } catch (e) { if (S.token || DEMO) showLogin(e.message); }
+}
+
+/* ---------------- Rendu ---------------- */
+function render() {
+  const isAdmin = S.me.role === 'admin';
+  const tabs = [['dispo', 'Mes souhaits'], ['planning', 'Planning']].concat(isAdmin ? [['admin', 'Admin']] : []);
+  $('#app').innerHTML = `
+  <header class="top"><div class="in">
+    <div class="brand"><div class="logo">P</div><h1>${esc(S.config.titre || 'Planning')}</h1></div>
+    <div class="me"><span class="chip">${isAdmin ? 'Admin' : 'Interne'}</span>
+      <div class="avatar" style="background:${esc(S.me.couleur)}" title="${esc(S.me.email)}">${esc(initials(S.me.nom))}</div>
+      ${DEMO ? '' : '<button class="btn ghost sm" id="out">Quitter</button>'}</div>
+  </div></header>
+  <main class="wrap" id="view"></main>
+  <nav class="tabs">${tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('')}</nav>`;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); window.scrollTo(0, 0); });
+  if ($('#out')) $('#out').onclick = () => logout();
+  ({ dispo: renderDispo, planning: renderPlanning, admin: renderAdmin })[S.tab]();
+}
+
+function weeks() {
+  const days = Engine.listDays(S.config.debut, S.config.fin);
+  const first = days[0], pre = (Engine.dow(first) + 6) % 7;
+  const cells = Array(pre).fill(null).concat(days);
+  while (cells.length % 7) cells.push(null);
+  const out = []; for (let i = 0; i < cells.length; i += 7) out.push(cells.slice(i, i + 7));
+  return out;
+}
+function weekLabel(w, i) {
+  const ds = w.filter(Boolean), a = ds[0].split('-'), b = ds[ds.length - 1].split('-');
+  return `Semaine ${i + 1} · ${+a[2]}${a[1] !== b[1] ? ' ' + MOIS[+a[1] - 1] : ''} – ${+b[2]} ${MOIS[+b[1] - 1]}`;
+}
+const fer = () => Engine.feries(S.config);
+
+/* ----- Onglet : mes souhaits ----- */
+function renderDispo() {
+  const locked = S.config.verrou === 'oui' && S.me.role !== 'admin';
+  const cnt = {}; Object.values(S.saisies).forEach(v => cnt[v.s] = (cnt[v.s] || 0) + 1);
+  const dl = S.config.dateLimite ? dlabel(S.config.dateLimite, true) : '';
+  $('#view').innerHTML = `
+  <div class="sec-head"><div><h2>Mes souhaits</h2>
+    <div class="muted small">${dlabel(S.config.debut, true)} → ${dlabel(S.config.fin, true)}${dl ? ` · à remplir avant le ${dl}` : ''}</div></div>
+    <div class="savebar"><span class="pulse ${S.saveState === 'busy' ? 'busy' : S.saveState === 'err' ? 'err' : ''}"></span><span id="savetxt">${S.saveState === 'busy' ? 'Enregistrement…' : S.saveState === 'err' ? 'Échec — réessaie' : 'Tout est enregistré'}</span></div>
+  </div>
+  ${locked ? '<div class="banner warn">Les saisies sont verrouillées : le planning est en cours de préparation.</div>' : `<div class="banner">Choisis un pinceau puis touche les jours concernés. Par défaut, chaque jour est <b>disponible</b>. Retoucher un jour avec le même pinceau l'efface.</div>`}
+  <div class="card">
+    <div class="brushes ${locked ? 'hidden' : ''}">
+      ${Object.entries(STATUTS).map(([k, v]) => `<button class="brush ${S.brush === k ? 'on' : ''}" data-b="${k}"><span class="sw" style="background:${v.color}">${v.icon}</span>${v.short}</button>`).join('')}
+      <button class="brush ${S.brush === 'note' ? 'on' : ''}" data-b="note"><span class="sw" style="background:var(--ink)">✎</span>Commentaire</button>
+    </div>
+    <div class="cal" id="cal">
+      <div class="cal-head">${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(x => `<div>${x}</div>`).join('')}</div>
+      ${weeks().map((w, i) => `<div class="wk-label">${weekLabel(w, i)}</div><div class="week">${w.map(dayCell).join('')}</div>`).join('')}
+    </div>
+    <div class="counts">${Object.entries(STATUTS).filter(([k]) => k !== 'dispo').map(([k, v]) => `<span class="chip"><span class="sw" style="width:10px;height:10px;border-radius:3px;background:${v.color}"></span>${v.short} · ${cnt[k] || 0}</span>`).join('')}</div>
+  </div>
+  <div class="card">
+    <h2>Remarques générales</h2>
+    <p class="muted small" style="margin:2px 0 10px">Contraintes récurrentes, échanges déjà convenus, cours de DES…</p>
+    <textarea id="note" ${locked ? 'disabled' : ''} placeholder="Ex. : séminaire de DES les 11 et 12 mars, je préfère les gardes en semaine…">${esc(S.note)}</textarea>
+  </div>`;
+  if (S.equipe) $('#view').insertAdjacentHTML('beforeend', `<div class="card"><h2>${S.config.visibilite === 'tout' ? 'Souhaits de l\'équipe' : 'Absences de l\'équipe'}</h2>
+    <p class="muted small" style="margin:2px 0 10px">${S.config.visibilite === 'tout' ? 'Ce que les autres internes ont déjà renseigné' : 'Les jours où les autres internes ont indiqué « Ne pas travailler »'} (commentaires non partagés). Mis à jour à l'ouverture de l'appli.</p>
+    ${teamTable(S.equipe, S.internes.filter(i => i.email !== S.me.email))}</div>`);
+  document.querySelectorAll('.brush').forEach(b => b.onclick = () => { S.brush = b.dataset.b; document.querySelectorAll('.brush').forEach(x => x.classList.toggle('on', x === b)); });
+  $('#note').oninput = e => { S.note = e.target.value; queueSave(); };
+  if (locked) return;
+  const cal = $('#cal'); let painting = false, paintTo = null;
+  cal.addEventListener('click', e => { const c = e.target.closest('.day[data-d]'); if (c && !painting) tap(c.dataset.d); });
+  cal.addEventListener('mousedown', e => { const c = e.target.closest('.day[data-d]'); if (!c || S.brush === 'note') return; painting = false; paintTo = null;
+    const onMove = ev => { const t = ev.target.closest && ev.target.closest('.day[data-d]'); if (!t) return;
+      if (!painting && t.dataset.d !== c.dataset.d) { painting = true; paintTo = cur(c.dataset.d) === S.brush ? 'dispo' : S.brush; paint(c.dataset.d, paintTo); }
+      if (painting) paint(t.dataset.d, paintTo); };
+    const onUp = () => { cal.removeEventListener('mouseover', onMove); window.removeEventListener('mouseup', onUp); setTimeout(() => painting = false, 0); };
+    cal.addEventListener('mouseover', onMove); window.addEventListener('mouseup', onUp); });
+}
+function teamTable(saisies, internes) {
+  const days = Engine.listDays(S.config.debut, S.config.fin).filter(d => internes.some(i => (saisies[i.email] || {})[d]));
+  if (!days.length) return '<p class="muted small">Rien de renseigné pour l\'instant.</p>';
+  const F = fer();
+  return `<div class="scroll" style="max-height:420px"><table class="ov"><tr><th></th>${internes.map(i => `<th><span class="avatar" style="width:22px;height:22px;font-size:10px;margin:auto;background:${esc(i.couleur)}" title="${esc(i.nom)}">${esc(initials(i.nom))}</span></th>`).join('')}</tr>
+  ${days.map(d => `<tr class="${Engine.isWE(d, F) ? 'we' : ''}"><td class="d">${dlabel(d)}</td>${internes.map(i => { const v = (saisies[i.email] || {})[d];
+    return v ? `<td class="c" style="background:${STATUTS[v.s].color}" title="${esc(i.nom)} — ${STATUTS[v.s].label}">${STATUTS[v.s].icon}</td>` : '<td class="c" style="background:transparent"></td>'; }).join('')}</tr>`).join('')}
+  </table></div>
+  <div class="legend">${internes.map(i => `<span><span class="avatar" style="width:14px;height:14px;font-size:0;background:${esc(i.couleur)}"></span>${esc(i.nom)}</span>`).join('')}</div>`;
+}
+const cur = d => (S.saisies[d] && S.saisies[d].s) || 'dispo';
+function dayCell(d) {
+  if (!d) return '<div class="day out"></div>';
+  const v = S.saisies[d], s = (v && v.s) || 'dispo', p = d.split('-');
+  const we = Engine.isWE(d, fer());
+  return `<div class="day ${we ? 'we' : ''} st-${s}" data-d="${d}" title="${esc(dlabel(d, true))}${v && v.c ? ' — ' + esc(v.c) : ''}">
+    ${v && v.c ? '<span class="dot"></span>' : ''}<span class="n">${+p[2]}</span>
+    <span class="${STATUTS[s].icon ? 'ic' : 'm'}">${STATUTS[s].icon || (+p[2] === 1 || d === S.config.debut ? MOIS[+p[1] - 1] : (fer().includes(d) ? 'férié' : '&nbsp;'))}</span></div>`;
+}
+function setDay(d, s, c) {
+  const prev = S.saisies[d] || {}; const n = { s: s || prev.s || 'dispo', c: c !== undefined ? c : (prev.c || '') };
+  if (n.s === 'dispo' && !n.c) delete S.saisies[d]; else S.saisies[d] = n;
+  const el = document.querySelector(`.day[data-d="${d}"]`); if (el) el.outerHTML = dayCell(d);
+}
+function paint(d, s) { if (cur(d) !== s) { setDay(d, s); queueSave(); } }
+function tap(d) {
+  if (S.brush === 'note') return noteModal(d);
+  setDay(d, cur(d) === S.brush ? 'dispo' : S.brush); queueSave(); refreshCounts();
+}
+function refreshCounts() { const cnt = {}; Object.values(S.saisies).forEach(v => cnt[v.s] = (cnt[v.s] || 0) + 1);
+  const el = $('.counts'); if (el) el.innerHTML = Object.entries(STATUTS).filter(([k]) => k !== 'dispo').map(([k, v]) => `<span class="chip"><span class="sw" style="width:10px;height:10px;border-radius:3px;background:${v.color}"></span>${v.short} · ${cnt[k] || 0}</span>`).join(''); }
+function noteModal(d) {
+  const v = S.saisies[d] || {};
+  modal(`<h2 style="font-size:22px">${cap(dlabel(d, true))}</h2>
+    <p class="muted small">Statut : ${STATUTS[v.s || 'dispo'].label}</p>
+    <textarea id="nc" placeholder="Ex. : mariage d'un ami, échange prévu avec Lucas…">${esc(v.c || '')}</textarea>
+    <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn ghost" data-close>Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`,
+    m => { $('#nc', m).focus(); $('#ok', m).onclick = () => { setDay(d, null, $('#nc', m).value.trim()); queueSave(); m.remove(); }; });
+}
+let saveTimer = null;
+function queueSave() { S.saveState = 'busy'; updSave(); clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 900); }
+async function doSave() {
+  try { await api('saveSaisies', { saisies: S.saisies, note: S.note }); S.saveState = 'ok'; }
+  catch (e) { S.saveState = 'err'; toast(e.message); }
+  updSave();
+}
+function updSave() { const p = $('.pulse'), t = $('#savetxt'); if (!p) return;
+  p.className = 'pulse ' + (S.saveState === 'busy' ? 'busy' : S.saveState === 'err' ? 'err' : '');
+  t.textContent = S.saveState === 'busy' ? 'Enregistrement…' : S.saveState === 'err' ? 'Échec — réessaie' : 'Tout est enregistré'; }
+window.addEventListener('beforeunload', e => { if (S.saveState === 'busy') { e.preventDefault(); e.returnValue = ''; } });
+
+/* ----- Onglet : planning ----- */
+const codeLabel = (c, t) => c === 'G' ? Engine.TYPES[t].court : CODES[c] || '';
+const codeCourt = (c, t) => ({ G: t === 'nuit' ? 'Nuit' : '24 h', SG: 'S+N', CG: 'Cs+N', C: 'Consult', S: 'Salle', R: 'Repos', A: 'Absent', L: '' })[c] || '';
+function renderPlanning() {
+  const p = S.planning, isAdmin = S.me.role === 'admin';
+  if (!p) {
+    $('#view').innerHTML = `<div class="sec-head"><h2>Planning</h2></div>
+      <div class="card" style="text-align:center;padding:40px 18px"><h2>Pas encore de planning</h2>
+      <p class="muted">${isAdmin ? 'Une fois les souhaits réunis, lance le calcul : salle semaine par semaine + gardes.' : 'Il apparaîtra ici dès que l\'administrateur l\'aura publié.'}</p>
+      ${isAdmin ? '<button class="btn accent lg" id="go">▶ Lancer le planning</button>' : ''}</div>`;
+    if ($('#go')) $('#go').onclick = () => lancer($('#go'));
+    return;
+  }
+  const byDate = {}; p.jours.forEach(j => byDate[j.date] = j);
+  const me = S.me.email, mine = S.pfilter === 'moi', ens = S.pfilter === 'ensemble';
+  $('#view').innerHTML = `
+  <div class="sec-head"><div><h2>Planning</h2>${isAdmin && S.config.publie !== 'oui' ? '<div class="chip" style="margin-top:6px;background:#fbecd0">Brouillon — non visible des internes</div>' : ''}</div>
+    <div class="row">${isAdmin ? '<button class="btn soft sm" id="relance">↻ Relancer</button>' : ''}
+    <div class="seg"><button data-f="ensemble" class="${ens ? 'on' : ''}">Ensemble</button><button data-f="tous" class="${S.pfilter === 'tous' ? 'on' : ''}">Gardes</button><button data-f="moi" class="${mine ? 'on' : ''}">Moi</button></div></div></div>
+  ${isAdmin && p.alertes.length ? `<div class="banner warn">${p.alertes.length} point(s) à vérifier — détails dans l'onglet Admin.</div>` : ''}
+  ${ens ? overviewHTML(p, me) : calHTML(p, byDate, me, mine)}
+  <div class="card"><h2>Compteurs</h2><p class="muted small" style="margin:2px 0 8px">Samedi = astreinte + demi-garde + garde · dimanche/férié = 2 gardes (jour + nuit).</p><div class="scroll">${statsTable(p)}</div></div>`;
+  document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.pfilter = b.dataset.f; renderPlanning(); });
+  document.querySelectorAll('.pday[data-d], .owt td[data-d]').forEach(c => c.onclick = () => dayModal(byDate[c.dataset.d]));
+  if ($('#relance')) $('#relance').onclick = () => confirmModal('Relancer le calcul ? Les modifications manuelles seront écrasées.', () => lancer($('#relance')));
+}
+function calHTML(p, byDate, me, mine) {
+  return `<div class="card">
+    <div class="cal">
+      <div class="cal-head">${['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'].map(x => `<div>${x}</div>`).join('')}</div>
+      ${weeks().map((w, i) => { const m = Engine.lundi(w.find(Boolean)), t = p.titulaires[m];
+        return `<div class="wk-label"><span>${weekLabel(w, i)}</span>${t ? `<span class="salle-tag ${t === me ? 'me' : ''}"><i style="background:${esc(couleurDe(t))}"></i>Salle · ${esc(nomDe(t))}</span>` : ''}</div>
+        <div class="week">${w.map(d => pCell(d, byDate[d], me, mine)).join('')}</div>`; }).join('')}
+    </div>
+    <div class="legend">${S.internes.map(i => `<span><span class="avatar" style="width:14px;height:14px;font-size:0;background:${esc(i.couleur)}"></span>${esc(i.nom)}</span>`).join('')}
+      <span><span class="tt">24 h</span> samedi / dimanche / férié</span><span><span class="rp-dot"></span> salle remplacée ce jour</span></div>
+  </div>`;
+}
+const OVC = { G: 'c-G', SG: 'c-G', CG: 'c-G', C: 'c-C', S: 'c-S', R: 'c-R', A: 'c-A', L: 'c-L' };
+function overviewHTML(p, me) {
+  const byDate = {}; p.jours.forEach(j => byDate[j.date] = j);
+  const JC = ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'];
+  return `<div class="card ovw">
+    <div class="legend" style="margin:0 0 6px">${['S', 'C', 'G', 'R', 'A'].map(c => `<span><span class="mycode ${OVC[c]}">${c === 'G' ? 'Nuit / 24 h' : CODES[c]}</span></span>`).join('')}</div>
+    ${weeks().map((w, i) => { const m = Engine.lundi(w.find(Boolean)), t = p.titulaires[m];
+      return `<div class="ow">
+        <div class="ow-head"><span class="ow-t">${weekLabel(w, i)}</span>
+          ${t ? `<span class="salle-big ${t === me ? 'me' : ''}"><span class="avatar" style="width:22px;height:22px;font-size:10px;background:${esc(couleurDe(t))}">${esc(initials(nomDe(t)))}</span><span><small>Salle</small>${esc(nomDe(t))}</span></span>` : ''}</div>
+        <div class="scroll"><table class="owt"><tr><th></th>${w.map((d, k) => { const j = d && byDate[d];
+          return `<th class="${j && j.we ? 'we' : ''}">${JC[k]}<br><b>${d ? +d.split('-')[2] : ''}</b></th>`; }).join('')}</tr>
+        ${S.internes.map(it => `<tr class="${it.email === me ? 'mine' : ''}"><td class="who"><span class="avatar" style="width:20px;height:20px;font-size:9px;background:${esc(it.couleur)}">${esc(initials(it.nom))}</span><span class="nm">${esc(it.nom)}</span></td>
+          ${w.map(d => { const j = d && byDate[d]; if (!j) return '<td></td>'; const c = j.codes[it.email];
+            return `<td class="${j.we ? 'we' : ''}" data-d="${d}"><span class="oc ${OVC[c]}">${codeCourt(c, j.type)}</span></td>`; }).join('')}</tr>`).join('')}
+        </table></div></div>`; }).join('')}
+  </div>`;
+}
+function pCell(d, j, me, mine) {
+  if (!d || !j) return '<div class="day out"></div>';
+  const p = d.split('-'), code = j.codes[me];
+  const chip = j.garde ? `<span class="gchip" style="background:${esc(couleurDe(j.garde))}">${esc(initials(nomDe(j.garde)))}</span>` : '<span class="gchip empty">!</span>';
+  return `<div class="day pday ${j.we ? 'we' : ''} ${code === 'G' || code === 'SG' ? 'mine-G' : ''}" data-d="${d}">
+    ${j.remplacement || j.salle === '' ? `<span class="rp-dot" title="Salle : ${j.salle ? esc(nomDe(j.salle)) : 'non pourvue'}"></span>` : ''}
+    <span class="n">${+p[2]}${+p[2] === 1 ? ' <span class="m">' + MOIS[+p[1] - 1] + '</span>' : ''}</span>
+    ${mine ? (code && code !== 'L' ? `<span class="mycode c-${code}">${codeLabel(code, j.type)}</span>` : '') : `<div class="gchips">${chip}</div>${j.we ? '<span class="tt">24 h</span>' : ''}`}</div>`;
+}
+function statsTable(p) {
+  const max = Math.max(1, ...Object.values(p.stats).map(s => s.charge));
+  return `<table class="t"><tr><th>Interne</th><th>Charge</th><th></th><th>Nuits</th><th>Sam.</th><th>Dim./fér.</th><th>Salle (sem.)</th><th>Consult.</th><th>Souhaits</th><th>« Éviter »</th></tr>
+  ${S.internes.map(i => { const s = p.stats[i.email]; if (!s) return '';
+    return `<tr><td><div class="row"><span class="avatar" style="width:22px;height:22px;font-size:10px;background:${esc(i.couleur)}">${esc(initials(i.nom))}</span>${esc(i.nom)}</div></td>
+    <td><b>${s.charge}</b></td><td><div class="bar"><i style="width:${s.charge / max * 100}%"></i></div></td><td>${s.nuits}</td><td>${s.samedis}</td><td>${s.dimanches}</td><td>${s.semainesSalle}</td><td>${s.consults}</td><td>${s.souhaitsOk}/${s.souhaits}</td><td>${s.eviter}</td></tr>`; }).join('')}</table>`;
+}
+function dayModal(j) {
+  const isAdmin = S.me.role === 'admin', groups = {};
+  S.internes.forEach(i => { const c = j.codes[i.email]; (groups[c] = groups[c] || []).push(i); });
+  const opt = (sel, kind) => `<option value="">— Personne —</option>${S.internes.map(i => {
+    const st = S.ov ? Engine.statut(S.ov.saisies, i.email, j.date) : 'dispo';
+    return `<option value="${esc(i.email)}" ${sel === i.email ? 'selected' : ''}>${esc(i.nom)}${st !== 'dispo' ? ' · ' + STATUTS[st].short : ''}</option>`; }).join('')}`;
+  modal(`<h2 style="font-size:22px">${cap(dlabel(j.date, true))}</h2>
+    <span class="chip" style="margin-top:6px">${esc(Engine.TYPES[j.type].label)}</span>
+    <div style="margin-top:14px">${['G', 'SG', 'CG', 'S', 'C', 'R', 'A', 'L'].filter(c => groups[c]).map(c => `
+      <div class="switch"><span class="mycode c-${c}" style="font-size:12px">${c === 'L' ? 'Libre' : codeLabel(c, j.type)}</span>
+      <span style="text-align:right">${groups[c].map(i => esc(i.nom)).join(', ')}</span></div>`).join('')}</div>
+    ${isAdmin ? `<div style="margin-top:16px">
+      <label class="f">Garde (${esc(Engine.TYPES[j.type].court)})</label><select id="mg" style="margin-bottom:12px">${opt(j.garde)}</select>
+      ${j.salle != null ? `<label class="f">Salle ce jour</label><select id="ms">${opt(j.salle)}</select>
+      <label class="row small" style="margin-top:8px;gap:8px"><input type="checkbox" id="mw"> Appliquer à toute la semaine (lun. → ven.)</label>
+      <label class="f" style="margin-top:14px">Consultation</label><div class="days-pick" id="mc">${S.internes.map(i => `<label><input type="checkbox" value="${esc(i.email)}" ${(j.consult || []).includes(i.email) ? 'checked' : ''}><span>${esc(i.nom)}</span></label>`).join('')}</div>` : ''}
+      <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-close>Fermer</button><button class="btn" id="sg">Enregistrer</button></div></div>`
+    : '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-close>Fermer</button></div>'}`,
+    m => { if (!isAdmin) return;
+      if (!S.ov) api('adminOverview').then(o => { S.ov = o; });
+      $('#sg', m).onclick = async () => {
+        const data = { date: j.date, garde: $('#mg', m).value };
+        if ($('#ms', m)) { data.salle = $('#ms', m).value; data.salleSemaine = $('#mw', m).checked; data.consult = [...m.querySelectorAll('#mc input:checked')].map(x => x.value); }
+        $('#sg', m).disabled = true;
+        try { S.planning = await api('adminSetJour', data); m.remove(); toast('Modification enregistrée'); render(); } catch (e) { toast(e.message); $('#sg', m).disabled = false; } }; });
+}
+
+async function lancer(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = 'Calcul en cours…'; }
+  try { S.planning = await api('adminGenerate', {}); toast('Planning calculé'); S.tab = 'planning'; render(); window.scrollTo(0, 0); }
+  catch (e) { toast(e.message); if (btn) { btn.disabled = false; btn.textContent = '▶ Lancer le planning'; } }
+}
+
+/* ----- Onglet : admin ----- */
+async function renderAdmin() {
+  $('#view').innerHTML = '<div class="spin"></div>';
+  try { S.ov = await api('adminOverview'); } catch (e) { $('#view').innerHTML = `<div class="banner err">${esc(e.message)}</div>`; return; }
+  const ov = S.ov, c = ov.config, days = Engine.listDays(c.debut, c.fin), F = Engine.feries(c);
+  S.regles = ov.regles || [];
+  const p = S.planning;
+  const remplis = ov.internes.filter(i => ov.maj[i.email] || Object.keys(ov.saisies[i.email] || {}).length).length;
+  const actives = S.regles.filter(r => r.actif !== false).length;
+  $('#view').innerHTML = `
+  <div class="sec-head"><h2>Administration</h2>${DEMO ? '<button class="btn ghost sm" id="reset">Réinitialiser la démo</button>' : ''}</div>
+
+  <div class="card hero">
+    <div class="hero-in">
+      <div style="flex:1;min-width:220px">
+        <div class="eyebrow">Étape finale</div>
+        <h2>${p ? 'Relancer le planning' : 'Lancer le planning'}</h2>
+        <p class="small" style="margin:6px 0 10px;opacity:.8">${remplis}/${ov.internes.length} internes ont rempli leurs souhaits · ${actives} règle(s) spécifique(s) active(s)${c.verrou === 'oui' ? ' · saisies verrouillées' : ''}</p>
+        <div class="bar light"><i style="width:${remplis / Math.max(1, ov.internes.length) * 100}%"></i></div>
+      </div>
+      <div class="row" style="flex-wrap:wrap"><button class="btn lg light" id="gen">▶ ${p ? 'Relancer' : 'Lancer le planning'}</button>${p ? '<button class="btn lg ghost-light" id="see">Voir</button>' : ''}</div>
+    </div>
+    ${p ? `<div class="hero-alerts">${p.alertes.length ? p.alertes.map(a => `<div class="alert"><b style="white-space:nowrap">${a.date ? dlabel(a.date) : 'Période'}</b><span>${esc(a.msg)}</span></div>`).join('') : '<span class="chip ok">✓ Toutes les règles sont respectées</span>'}</div>` : ''}
+  </div>
+
+  <div class="card"><h2>Règles du planning</h2>
+    <h3 class="sub">Règles de base</h3>
+    <ul class="rules">
+      <li><b>Lundi → vendredi</b> : une garde de nuit chaque soir ; un interne de <b>salle</b>, le même du lundi au vendredi.</li>
+      <li><b>Samedi en 24 h</b>, un seul interne : astreinte (matin) + demi-garde (après-midi) + garde (nuit).</li>
+      <li><b>Dimanche et jours fériés en 24 h</b>, un seul interne : garde de jour + garde de nuit.</li>
+      <li><b>Repos de sécurité</b> le lendemain de chaque garde : l'interne de salle ne prend donc pas de garde la veille de ses jours de salle.</li>
+      <li><b>Consultations</b> (facultatives) : l'algorithme en propose sur les jours où l'interne est libre (ni salle, ni garde, ni repos), en visant l'objectif mensuel ci-dessous et en priorité sur les souhaits de consultation.</li>
+      <li>La salle n'est remplacée sur une journée qu'en cas exceptionnel (absence). Équilibre entre internes : charge pondérée, week-ends, dimanches, semaines de salle.</li>
+    </ul>
+    <div class="switch"><span>Autoriser l'interne de salle à prendre la garde le soir même (vendredi notamment)</span><label class="tg"><input type="checkbox" id="c_gardeApresSalle" ${c.gardeApresSalle === 'oui' ? 'checked' : ''}><span></span></label></div>
+    <div class="switch"><span>Proposer des consultations</span><label class="tg"><input type="checkbox" id="c_consultActif" ${c.consultActif !== 'non' ? 'checked' : ''}><span></span></label></div>
+    <div class="grid2" style="margin-top:8px">
+      <div><label class="f">Objectif : jours de consultation par mois et par interne</label><input type="number" min="0" max="10" id="c_consultMin" value="${esc(c.consultMin || 2)}"></div>
+      <div><label class="f">Internes en consultation le même jour (max.)</label><input type="number" min="1" max="4" id="c_consultParJour" value="${esc(c.consultParJour || 1)}"></div>
+    </div>
+    <h3 class="sub" style="margin-top:18px">Règles spécifiques</h3>
+    <div id="rlist">${rulesList()}</div>
+    <button class="btn soft" id="addr" style="margin-top:10px">+ Ajouter une règle</button>
+  </div>
+
+  <div class="card"><h2>Avancement des saisies</h2>
+    <div class="scroll"><table class="t"><tr><th>Interne</th><th>Jours renseignés</th><th>Souhaits</th><th>Absences</th><th>Dernière modif.</th></tr>
+    ${ov.internes.map(i => { const s = ov.saisies[i.email] || {}, vals = Object.values(s);
+      const k = t => vals.filter(v => v.s === t).length, m = ov.maj[i.email];
+      return `<tr><td><div class="row"><span class="avatar" style="width:22px;height:22px;font-size:10px;background:${esc(i.couleur)}">${esc(initials(i.nom))}</span>${esc(i.nom)}</div></td>
+      <td>${vals.length}</td><td>${k('souhait')}</td><td>${k('indispo')}</td><td class="muted small">${m ? new Date(m).toLocaleString('fr-FR', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '<span style="color:var(--indispo)">jamais</span>'}</td></tr>`; }).join('')}
+    </table></div>
+    ${Object.entries(ov.notes || {}).filter(([, n]) => n).map(([e, n]) => `<div class="alert"><b>${esc(nomDe(e))}</b><span>${esc(n)}</span></div>`).join('')}
+  </div>
+
+  <div class="card"><h2>Paramètres</h2>
+    <div class="grid2" style="margin-top:10px">
+      <div><label class="f">Titre</label><input type="text" id="c_titre" value="${esc(c.titre)}"></div>
+      <div><label class="f">Date limite de saisie</label><input type="date" id="c_dateLimite" value="${esc(c.dateLimite)}"></div>
+      <div><label class="f">Début (lundi)</label><input type="date" id="c_debut" value="${esc(c.debut)}"></div>
+      <div><label class="f">Fin (dimanche)</label><input type="date" id="c_fin" value="${esc(c.fin)}"></div>
+      <div style="grid-column:1/-1"><label class="f">Jours fériés (gérés comme un dimanche : 24 h, pas de salle)</label><input type="text" id="c_feries" value="${esc(c.feries)}" placeholder="2027-03-29, 2027-05-01"></div>
+    </div>
+    <label class="f" style="margin-top:12px">Poids pour l'équilibre de la charge</label>
+    <div class="grid3">
+      <div><span class="small muted">Nuit de semaine</span><input type="number" step="0.5" min="0" id="c_poidsNuit" value="${esc(c.poidsNuit)}"></div>
+      <div><span class="small muted">Samedi 24 h</span><input type="number" step="0.5" min="0" id="c_poidsSamedi" value="${esc(c.poidsSamedi)}"></div>
+      <div><span class="small muted">Dimanche / férié 24 h</span><input type="number" step="0.5" min="0" id="c_poidsDimanche" value="${esc(c.poidsDimanche)}"></div>
+    </div>
+    <label class="f" style="margin-top:12px">Ce que chaque interne voit des souhaits des autres</label>
+    <select id="c_visibilite">${[['non', 'Rien'], ['absences', 'Les absences uniquement (« Ne pas travailler »)'], ['tout', 'Tous les souhaits (sans les commentaires)']].map(([v, l]) => `<option value="${v}" ${(c.visibilite || 'absences') === v ? 'selected' : ''}>${l}</option>`).join('')}</select>
+    <div style="margin-top:10px">
+      ${[['verrou', 'Verrouiller les saisies des internes'], ['publie', 'Publier le planning aux internes']].map(([k, l]) => `
+      <div class="switch"><span>${l}</span><label class="tg"><input type="checkbox" id="c_${k}" ${c[k] === 'oui' ? 'checked' : ''}><span></span></label></div>`).join('')}
+    </div>
+    <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" id="savecfg">Enregistrer les paramètres</button></div>
+  </div>
+
+  <div class="card"><h2>Internes autorisés</h2>
+    <p class="muted small" style="margin:4px 0 12px">Seules ces adresses Google peuvent ouvrir l'appli.</p>
+    <div id="ilist">${ov.internes.map(irow).join('')}</div>
+    <div class="row" style="justify-content:space-between;margin-top:6px"><button class="btn soft sm" id="addi">+ Ajouter</button><button class="btn" id="savei">Enregistrer la liste</button></div>
+  </div>
+
+  <div class="card"><h2>Vue d'ensemble des souhaits</h2>
+    <div class="legend">${Object.entries(STATUTS).map(([k, v]) => `<span><span style="width:12px;height:12px;border-radius:3px;background:${v.color};display:inline-block"></span>${v.short}</span>`).join('')}</div>
+    <div class="scroll" style="max-height:520px;margin-top:10px"><table class="ov"><tr><th></th>${ov.internes.map(i => `<th>${esc(initials(i.nom))}</th>`).join('')}</tr>
+    ${days.map(d => `<tr class="${Engine.isWE(d, F) ? 'we' : ''}"><td class="d">${dlabel(d)}</td>${ov.internes.map(i => { const v = (ov.saisies[i.email] || {})[d]; const s = v ? v.s : 'dispo';
+      return `<td class="c" style="background:${STATUTS[s].color}" title="${esc(i.nom)} — ${STATUTS[s].label}${v && v.c ? ' : ' + esc(v.c) : ''}">${STATUTS[s].icon}${v && v.c ? '•' : ''}</td>`; }).join('')}</tr>`).join('')}
+    </table></div>
+  </div>`;
+
+  $('#gen').onclick = () => p ? confirmModal('Relancer le calcul ? Les modifications manuelles seront écrasées.', () => lancer($('#gen'))) : lancer($('#gen'));
+  if ($('#see')) $('#see').onclick = () => { S.tab = 'planning'; render(); };
+  if ($('#reset')) $('#reset').onclick = async () => { await Mock.call('reset'); location.reload(); };
+  $('#c_gardeApresSalle').onchange = e => saveCfg({ gardeApresSalle: e.target.checked ? 'oui' : 'non' });
+  $('#c_consultActif').onchange = e => saveCfg({ consultActif: e.target.checked ? 'oui' : 'non' });
+  ['consultMin', 'consultParJour'].forEach(k => $('#c_' + k).onchange = e => saveCfg({ [k]: e.target.value }));
+  $('#addr').onclick = () => ruleModal();
+  $('#rlist').onclick = e => {
+    const row = e.target.closest('[data-r]'); if (!row) return; const k = +row.dataset.r;
+    if (e.target.closest('.del')) confirmModal('Supprimer cette règle ?', () => { S.regles.splice(k, 1); saveRegles(); });
+    else if (e.target.closest('.edit')) ruleModal(k);
+  };
+  $('#rlist').onchange = e => { const row = e.target.closest('[data-r]'); if (row && e.target.matches('.act')) { S.regles[+row.dataset.r].actif = e.target.checked; saveRegles(); } };
+  $('#savecfg').onclick = () => {
+    const d = {}; ['titre', 'dateLimite', 'debut', 'fin', 'feries', 'poidsNuit', 'poidsSamedi', 'poidsDimanche', 'visibilite'].forEach(k => d[k] = $('#c_' + k).value);
+    ['verrou', 'publie'].forEach(k => d[k] = $('#c_' + k).checked ? 'oui' : 'non');
+    saveCfg(d, true);
+  };
+  $('#addi').onclick = () => $('#ilist').insertAdjacentHTML('beforeend', irow({ email: '', nom: '', role: 'interne', couleur: ['#d1495b', '#2f9e75', '#e08e1b', '#8a5cc7', '#1f8fb4', '#b5527a'][Math.floor(Math.random() * 6)] }));
+  $('#ilist').onclick = e => { if (e.target.closest('.x')) e.target.closest('.irow').remove(); };
+  $('#savei').onclick = async () => {
+    const list = [...document.querySelectorAll('.irow')].map(r => ({ couleur: $('[name=couleur]', r).value, nom: $('[name=nom]', r).value.trim(), email: $('[name=email]', r).value.trim().toLowerCase(), role: $('[name=role]', r).value }));
+    try { S.internes = await api('adminSaveInternes', { internes: list }); toast('Liste enregistrée'); renderAdmin(); } catch (e) { toast(e.message); }
+  };
+}
+async function saveCfg(d, rerender) {
+  try { S.config = await api('adminSaveConfig', d); S.planning = await api('getPlanning'); toast('Paramètres enregistrés'); if (rerender) render(); } catch (e) { toast(e.message); }
+}
+function rulesList() {
+  if (!S.regles.length) return '<p class="muted small">Aucune règle spécifique pour l\'instant. Ex. : « Lucas : au plus 5 gardes par mois », « Inès : pas de garde le mercredi », « Camille : salle la semaine du 8 mars ».</p>';
+  return S.regles.map((r, k) => `<div class="rrow ${r.actif === false ? 'off' : ''}" data-r="${k}">
+    <label class="tg sm"><input type="checkbox" class="act" ${r.actif !== false ? 'checked' : ''}><span></span></label>
+    <div class="rtxt">${esc(Engine.decrire(r, nomDe))}<div class="rmeta"><span class="badge ${r.type === 'note' ? 'note' : r.force === 'souple' ? 'soft' : 'hard'}">${r.type === 'note' ? 'Note' : r.force === 'souple' ? 'Préférence' : 'Obligatoire'}</span><span class="muted">${esc(({ salle: 'Salle', garde: 'Gardes', consult: 'Consultations' })[Engine.RULE_TYPES[r.type].cible] || '')}</span></div></div>
+    <button class="x edit" title="Modifier">✎</button><button class="x del" title="Supprimer">✕</button></div>`).join('');
+}
+async function saveRegles() {
+  try { S.regles = await api('adminSaveRegles', { regles: S.regles }); if (S.ov) S.ov.regles = S.regles; $('#rlist').innerHTML = rulesList(); toast('Règles enregistrées'); }
+  catch (e) { toast(e.message); }
+}
+function ruleModal(k) {
+  const r = k != null ? Object.assign({}, S.regles[k]) : { type: 'max_gardes', qui: '*', n: 4, unite: 'mois', force: 'dure', actif: true, jours: [] };
+  const groups = { garde: 'Gardes', salle: 'Salle', consult: 'Consultations', note: 'Autre' };
+  const JS = [[1, 'Lun'], [2, 'Mar'], [3, 'Mer'], [4, 'Jeu'], [5, 'Ven'], [6, 'Sam'], [0, 'Dim']];
+  const m = modal(`<h2 style="font-size:22px">${k != null ? 'Modifier la règle' : 'Nouvelle règle'}</h2>
+    <div style="margin-top:12px"><label class="f">Pour qui ?</label><select id="rq"></select></div>
+    <div style="margin-top:12px"><label class="f">Règle</label><select id="rt">${Object.entries(groups).map(([g, l]) => `<optgroup label="${l}">${Object.entries(Engine.RULE_TYPES).filter(([, t]) => t.cible === g).map(([id, t]) => `<option value="${id}" ${r.type === id ? 'selected' : ''}>${esc(t.label)}</option>`).join('')}</optgroup>`).join('')}</select></div>
+    <div id="rf" style="margin-top:12px"></div>
+    <div id="rforce" style="margin-top:14px"><label class="f">Importance</label>
+      <div class="seg"><button data-v="dure">Obligatoire</button><button data-v="souple">Préférence</button></div>
+      <p class="muted small" style="margin:6px 0 0">Obligatoire : jamais enfreinte (sauf impossibilité, signalée). Préférence : respectée autant que possible.</p></div>
+    <div id="rprev" class="banner" style="margin-top:14px"></div>
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-close>Annuler</button><button class="btn" id="rok">Enregistrer</button></div>`);
+  const read = () => {
+    r.type = $('#rt', m).value; r.qui = $('#rq', m).value;
+    if ($('#rn', m)) r.n = +$('#rn', m).value;
+    if ($('#ru', m)) r.unite = $('#ru', m).value;
+    if ($('#rd', m)) r.date = $('#rd', m).value;
+    if ($('#rx', m)) r.texte = $('#rx', m).value;
+    if ($('#rj', m)) r.jours = [...m.querySelectorAll('#rj input:checked')].map(i => +i.value);
+  };
+  const draw = () => {
+    const t = Engine.RULE_TYPES[r.type];
+    if (t.individuel && r.qui === '*') r.qui = S.internes[0].email;
+    $('#rq', m).innerHTML = (t.individuel ? '' : `<option value="*" ${r.qui === '*' ? 'selected' : ''}>Tous les internes</option>`) + S.internes.map(i => `<option value="${esc(i.email)}" ${r.qui === i.email ? 'selected' : ''}>${esc(i.nom)}</option>`).join('');
+    $('#rf', m).innerHTML = t.champs.map(f => f === 'n' ? `<label class="f">${r.type === 'ecart_min' ? 'Nombre de jours' : r.type === 'max_salle' ? 'Nombre de semaines' : 'Nombre de gardes'}</label><input type="number" min="0" id="rn" value="${esc(r.n != null ? r.n : 2)}" style="margin-bottom:10px">`
+      : f === 'unite' ? `<label class="f">Par</label><select id="ru" style="margin-bottom:10px">${[['periode', 'Sur toute la période'], ['mois', 'Par mois'], ['semaine', 'Par semaine']].map(([v, l]) => `<option value="${v}" ${r.unite === v ? 'selected' : ''}>${l}</option>`).join('')}</select>`
+      : f === 'date' ? `<label class="f">${t.cible === 'salle' ? 'Un jour de la semaine concernée' : 'Date'}</label><input type="date" id="rd" min="${S.config.debut}" max="${S.config.fin}" value="${esc(r.date || S.config.debut)}" style="margin-bottom:10px">`
+      : f === 'jours' ? `<label class="f">Jours sans garde</label><div class="days-pick" id="rj">${JS.map(([v, l]) => `<label><input type="checkbox" value="${v}" ${(r.jours || []).map(Number).includes(v) ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>`
+      : `<label class="f">Texte</label><textarea id="rx">${esc(r.texte || '')}</textarea>`).join('');
+    $('#rforce', m).classList.toggle('hidden', r.type === 'note');
+    m.querySelectorAll('#rforce .seg button').forEach(b => b.classList.toggle('on', b.dataset.v === (r.force || 'dure')));
+    preview();
+  };
+  const preview = () => { read(); $('#rprev', m).textContent = Engine.decrire(r, nomDe); };
+  $('#rt', m).onchange = () => { read(); draw(); };
+  m.addEventListener('input', e => { if (e.target.id !== 'rt') preview(); });
+  m.addEventListener('change', e => { if (e.target.id !== 'rt') preview(); });
+  m.querySelectorAll('#rforce .seg button').forEach(b => b.onclick = () => { r.force = b.dataset.v; draw(); });
+  $('#rok', m).onclick = () => {
+    read();
+    if (Engine.RULE_TYPES[r.type].champs.includes('jours') && !(r.jours || []).length) return toast('Choisis au moins un jour');
+    if (k != null) S.regles[k] = r; else S.regles.push(r);
+    m.remove(); saveRegles();
+  };
+  draw();
+}
+let confirmBox = false;
+function irow(i) {
+  return `<div class="irow"><input type="color" name="couleur" value="${esc(i.couleur)}"><input type="text" name="nom" placeholder="Prénom" value="${esc(i.nom)}">
+  <input class="em" type="email" name="email" placeholder="adresse@gmail.com" value="${esc(i.email)}">
+  <select class="rl" name="role"><option value="interne" ${i.role !== 'admin' ? 'selected' : ''}>Interne</option><option value="admin" ${i.role === 'admin' ? 'selected' : ''}>Admin</option></select>
+  <button class="x" title="Retirer">✕</button></div>`;
+}
+
+/* ----- Modales ----- */
+function modal(html, after) {
+  const m = document.createElement('div'); m.className = 'modal';
+  m.innerHTML = `<div class="sheet">${html}</div>`;
+  m.addEventListener('click', e => { if (e.target === m || e.target.closest('[data-close]')) m.remove(); });
+  document.body.appendChild(m); if (after) after(m); return m;
+}
+function confirmModal(msg, ok) {
+  modal(`<h2 style="font-size:20px">Confirmer</h2><p>${esc(msg)}</p><div class="row" style="justify-content:flex-end"><button class="btn ghost" data-close>Annuler</button><button class="btn" id="cy">Confirmer</button></div>`,
+    m => $('#cy', m).onclick = () => { m.remove(); ok(); });
+}
+
+start();
+if (DEMO) setTimeout(() => toast('Mode démo — données fictives stockées sur cet appareil'), 600);
+</script>
+</body>
+</html>
