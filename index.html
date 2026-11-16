@@ -210,6 +210,21 @@ table.owt{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fi
 .oc.c-L{background:transparent}
 .c-C,.c-CG.x{background:#d5eef2;color:#155e6b}
 @media(max-width:480px){.ovw{padding:12px 8px}.owt{border-spacing:2px}.owt th:first-child{width:24px}.owt .nm{display:none}.oc{font-size:9.5px}}
+
+.mc-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.mc-nav b{font-family:Fraunces,Georgia,serif;font-size:19px}
+.mc-nav .x[disabled]{opacity:.3}
+.mc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.mc-h div{text-align:center;font-size:11px;font-weight:700;color:var(--muted);padding:4px 0}
+.mc-d{min-height:58px;border-radius:10px;background:var(--card);border:1px solid var(--line);padding:4px 3px;display:flex;flex-direction:column;align-items:center;gap:3px}
+.mc-d.we{background:var(--soft)} .mc-d.out{visibility:hidden} .mc-d.hors{opacity:.35}
+.mc-d.has{border-color:#e9b3b3;background:#fdf1f1}
+.mc-n{font-size:12px;font-weight:700}
+.mc-c{display:flex;flex-wrap:wrap;gap:2px;justify-content:center}
+.mc-c span{min-width:19px;height:17px;padding:0 3px;border-radius:5px;color:#fff;font-size:9px;font-weight:800;display:grid;place-items:center}
+.mc-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:14px}
+.mc-list div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.invite{display:flex;gap:8px;margin-bottom:6px} .invite input{flex:1;font-size:13px}
 </style>
 </head>
 <body>
@@ -218,7 +233,7 @@ table.owt{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fi
 <script>
 /* ================= CONFIGURATION (à remplir) ================= */
 const CONFIG = {
-  API_URL: 'https://script.google.com/macros/s/AKfycbyAVL6hn41XPYjZtKBCtM1UPd_iDtxrybWw9GBb-q-PchhMBo8tGp9S8gDqkribTDDNJg/exec',    // URL de l'application web Apps Script (…/exec)
+  API_URL: 'https://script.google.com/macros/s/AKfycbyagsfFyMMgkWgX8f71hNgWC0fd9u9-gEbOAHXjot40WCcDlg8-94wrhtxiKXqDMQtUkA/exec',    // URL de l'application web Apps Script (…/exec)
   CLIENT_ID: '999636070129-q3bavdsod688k4v6tms41b9et6h9trcf.apps.googleusercontent.com'   // ID client OAuth Google (…apps.googleusercontent.com)
 };
 /* ============================================================= */
@@ -697,7 +712,7 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
 /* ---------------- API ---------------- */
 async function api(action, data = {}) {
   if (DEMO) return Mock.call(action, data);
-  const r = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, data, token: S.token }) });
+  const r = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, data, token: S.token, invite: invitation() }) });
   const j = await r.json();
   if (!j.ok) {
     if (/^AUTH:/.test(j.error)) { logout(j.error.replace(/^AUTH:\s*/, '')); }
@@ -708,7 +723,7 @@ async function api(action, data = {}) {
 
 /* ---------------- Mode démo (données locales, aucune connexion) ---------------- */
 const Mock = (() => {
-  const KEY = 'planning-demo-v4';
+  const KEY = 'planning-demo-v5';
   function seed() {
     const internes = [
       { email: 'anthony@demo', nom: 'Anthony', role: 'admin', couleur: '#4b5bd6' },
@@ -717,7 +732,7 @@ const Mock = (() => {
       { email: 'ines@demo', nom: 'Inès', role: 'interne', couleur: '#e08e1b' },
       { email: 'hugo@demo', nom: 'Hugo', role: 'interne', couleur: '#8a5cc7' }
     ];
-    const config = { titre: 'Planning des internes', debut: '2027-02-01', fin: '2027-05-02', dateLimite: '2027-01-15', feries: '2027-03-29, 2027-05-01', poidsNuit: '1', poidsSamedi: '2', poidsDimanche: '2', gardeApresSalle: 'non', consultActif: 'oui', consultMin: '2', consultParJour: '1', visibilite: 'absences', verrou: 'non', publie: 'non' };
+    const config = { titre: 'Planning des internes', debut: '2027-02-01', fin: '2027-05-02', dateLimite: '2027-01-15', feries: '2027-03-29, 2027-05-01', poidsNuit: '1', poidsSamedi: '2', poidsDimanche: '2', gardeApresSalle: 'non', consultActif: 'oui', consultMin: '2', consultParJour: '1', visibilite: 'absences', inscriptionLien: 'oui', codeInvitation: 'demo1234', verrou: 'non', publie: 'non' };
     const saisies = {}, days = Engine.listDays(config.debut, config.fin);
     internes.slice(1).forEach((it, k) => {
       saisies[it.email] = {};
@@ -741,6 +756,7 @@ const Mock = (() => {
       case 'adminOverview': return { config: db.config, internes: db.internes, saisies: db.saisies, notes: db.notes, maj: db.maj, regles: db.regles };
       case 'adminSaveConfig': Object.assign(db.config, d); save(db); return db.config;
       case 'adminSaveInternes': db.internes = d.internes; save(db); return db.internes;
+      case 'adminNouveauLien': db.config.codeInvitation = Math.random().toString(36).slice(2, 10); save(db); return db.config;
       case 'adminSaveRegles': db.regles = d.regles.map((r, k) => Object.assign({}, r, { id: r.id || 'R' + Date.now() + k })); save(db); return db.regles;
       case 'adminGenerate': await wait(50); db.aff = Engine.generer(db.config, db.internes.map(i => i.email), db.saisies, db.regles, { essais: 250 }); save(db); return plan(db);
       case 'adminSetJour': {
@@ -758,6 +774,11 @@ const Mock = (() => {
 
 /* ---------------- Connexion Google ---------------- */
 function jwtExp(t) { try { return JSON.parse(atob(t.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000; } catch (e) { return 0; } }
+function invitation() { try { return localStorage.getItem('pl_invite') || ''; } catch (e) { return ''; } }
+(function () {
+  const m = location.hash.match(/invite=([\w-]+)/);
+  if (m) { try { localStorage.setItem('pl_invite', m[1]); } catch (e) {} history.replaceState(null, '', location.pathname + location.search); }
+})();
 function start() {
   if (DEMO) return boot();
   const t = localStorage.getItem('pl_token');
@@ -855,9 +876,14 @@ function renderDispo() {
     <p class="muted small" style="margin:2px 0 10px">Contraintes récurrentes, échanges déjà convenus, cours de DES…</p>
     <textarea id="note" ${locked ? 'disabled' : ''} placeholder="Ex. : séminaire de DES les 11 et 12 mars, je préfère les gardes en semaine…">${esc(S.note)}</textarea>
   </div>`;
-  if (S.equipe) $('#view').insertAdjacentHTML('beforeend', `<div class="card"><h2>${S.config.visibilite === 'tout' ? 'Souhaits de l\'équipe' : 'Absences de l\'équipe'}</h2>
-    <p class="muted small" style="margin:2px 0 10px">${S.config.visibilite === 'tout' ? 'Ce que les autres internes ont déjà renseigné' : 'Les jours où les autres internes ont indiqué « Ne pas travailler »'} (commentaires non partagés). Mis à jour à l'ouverture de l'appli.</p>
-    ${teamTable(S.equipe, S.internes.filter(i => i.email !== S.me.email))}</div>`);
+  if (S.equipe) {
+    const all = Object.assign({}, S.equipe, { [S.me.email]: S.saisies });
+    $('#view').insertAdjacentHTML('beforeend', `<div class="card"><h2>Absences de l'équipe</h2>
+      <p class="muted small" style="margin:2px 0 10px">Les jours « Ne pas travailler » de chacun, mois par mois. Mis à jour à l'ouverture de l'appli.</p>
+      <div id="mc-dispo"></div></div>
+      ${S.config.visibilite === 'tout' ? `<div class="card"><h2>Autres souhaits de l'équipe</h2><p class="muted small" style="margin:2px 0 10px">Sans les commentaires.</p>${teamTable(S.equipe, S.internes.filter(i => i.email !== S.me.email))}</div>` : ''}`);
+    monthCal('mc-dispo', () => Object.assign({}, S.equipe, { [S.me.email]: S.saisies }), S.internes);
+  }
   document.querySelectorAll('.brush').forEach(b => b.onclick = () => { S.brush = b.dataset.b; document.querySelectorAll('.brush').forEach(x => x.classList.toggle('on', x === b)); });
   $('#note').oninput = e => { S.note = e.target.value; queueSave(); };
   if (locked) return;
@@ -869,6 +895,32 @@ function renderDispo() {
       if (painting) paint(t.dataset.d, paintTo); };
     const onUp = () => { cal.removeEventListener('mouseover', onMove); window.removeEventListener('mouseup', onUp); setTimeout(() => painting = false, 0); };
     cal.addEventListener('mouseover', onMove); window.addEventListener('mouseup', onUp); });
+}
+const MOIS_L = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+const calMois = {};
+function monthCal(id, getAll, internes) {
+  const el = document.getElementById(id); if (!el) return;
+  const days = Engine.listDays(S.config.debut, S.config.fin);
+  const mois = [...new Set(days.map(d => d.slice(0, 7)))].filter(m => days.filter(d => d.startsWith(m)).length >= 3);
+  if (calMois[id] == null) { const now = new Date().toISOString().slice(0, 7); calMois[id] = Math.max(0, mois.indexOf(now)); }
+  const k = Math.min(calMois[id], mois.length - 1), m = mois[k], all = getAll(), F = fer();
+  const [y, mo] = m.split('-').map(Number);
+  const first = m + '-01', nbj = new Date(Date.UTC(y, mo, 0)).getUTCDate();
+  const pre = (Engine.dow(first) + 6) % 7, cells = Array(pre).fill(null);
+  for (let j = 1; j <= nbj; j++) cells.push(m + '-' + String(j).padStart(2, '0'));
+  while (cells.length % 7) cells.push(null);
+  const abs = d => internes.filter(i => ((all[i.email] || {})[d] || {}).s === 'indispo');
+  const parInterne = internes.map(i => ({ i, ds: cells.filter(d => d && ((all[i.email] || {})[d] || {}).s === 'indispo') })).filter(x => x.ds.length);
+  el.innerHTML = `<div class="mc">
+    <div class="mc-nav"><button class="x" data-mv="-1" ${k === 0 ? 'disabled' : ''}>‹</button><b>${cap(MOIS_L[mo - 1])} ${y}</b><button class="x" data-mv="1" ${k === mois.length - 1 ? 'disabled' : ''}>›</button></div>
+    <div class="mc-grid mc-h">${['L', 'M', 'M', 'J', 'V', 'S', 'D'].map(x => `<div>${x}</div>`).join('')}</div>
+    <div class="mc-grid">${cells.map(d => { if (!d) return '<div class="mc-d out"></div>';
+      const inP = d >= S.config.debut && d <= S.config.fin, a = inP ? abs(d) : [];
+      return `<div class="mc-d ${Engine.isWE(d, F) ? 'we' : ''} ${inP ? '' : 'hors'} ${a.length ? 'has' : ''}"><span class="mc-n">${+d.slice(8)}</span>
+        <div class="mc-c">${a.map(i => `<span style="background:${esc(i.couleur)}" title="${esc(i.nom)}">${esc(initials(i.nom))}</span>`).join('')}</div></div>`; }).join('')}</div>
+    <div class="mc-list">${parInterne.length ? parInterne.map(({ i, ds }) => `<div><span class="avatar" style="width:20px;height:20px;font-size:9px;background:${esc(i.couleur)}">${esc(initials(i.nom))}</span><b>${esc(i.nom)}</b><span class="muted">${ds.map(d => +d.slice(8)).join(', ')} ${MOIS[mo - 1]}</span></div>`).join('') : '<span class="muted small">Aucune absence ce mois-ci.</span>'}</div>
+  </div>`;
+  el.querySelectorAll('[data-mv]').forEach(b => b.onclick = () => { calMois[id] = k + +b.dataset.mv; monthCal(id, getAll, internes); });
 }
 function teamTable(saisies, internes) {
   const days = Engine.listDays(S.config.debut, S.config.fin).filter(d => internes.some(i => (saisies[i.email] || {})[d]));
@@ -1105,11 +1157,19 @@ async function renderAdmin() {
     <div class="row" style="justify-content:flex-end;margin-top:10px"><button class="btn" id="savecfg">Enregistrer les paramètres</button></div>
   </div>
 
-  <div class="card"><h2>Internes autorisés</h2>
-    <p class="muted small" style="margin:4px 0 12px">Seules ces adresses Google peuvent ouvrir l'appli.</p>
+  <div class="card"><h2>Internes</h2>
+    <h3 class="sub">Lien d'invitation</h3>
+    <p class="muted small" style="margin:0 0 8px">Envoie ce lien aux internes. Ils se connectent avec leur compte Google et sont ajoutés automatiquement à la liste. Sans ce lien, personne ne peut entrer.</p>
+    <div class="invite"><input type="text" readonly id="invlink" value="${esc(inviteLink(c.codeInvitation))}"><button class="btn" id="copyinv">Copier</button></div>
+    <div class="switch"><span>Inscription par lien activée</span><label class="tg"><input type="checkbox" id="c_inscriptionLien" ${c.inscriptionLien !== 'non' ? 'checked' : ''}><span></span></label></div>
+    <button class="btn ghost sm" id="newinv" style="margin-top:8px">Générer un nouveau lien (l'ancien ne marchera plus)</button>
+    <h3 class="sub" style="margin-top:18px">Liste</h3>
+    <p class="muted small" style="margin:0 0 12px">Les internes inscrits apparaissent ici. Tu peux corriger un prénom, changer une couleur ou retirer quelqu'un.</p>
     <div id="ilist">${ov.internes.map(irow).join('')}</div>
     <div class="row" style="justify-content:space-between;margin-top:6px"><button class="btn soft sm" id="addi">+ Ajouter</button><button class="btn" id="savei">Enregistrer la liste</button></div>
   </div>
+
+  <div class="card"><h2>Absences — mois par mois</h2><div id="mc-admin" style="margin-top:8px"></div></div>
 
   <div class="card"><h2>Vue d'ensemble des souhaits</h2>
     <div class="legend">${Object.entries(STATUTS).map(([k, v]) => `<span><span style="width:12px;height:12px;border-radius:3px;background:${v.color};display:inline-block"></span>${v.short}</span>`).join('')}</div>
@@ -1137,6 +1197,11 @@ async function renderAdmin() {
     ['verrou', 'publie'].forEach(k => d[k] = $('#c_' + k).checked ? 'oui' : 'non');
     saveCfg(d, true);
   };
+  monthCal('mc-admin', () => S.ov.saisies, S.ov.internes);
+  $('#copyinv').onclick = async () => { const v = $('#invlink').value; try { await navigator.clipboard.writeText(v); } catch (e) { $('#invlink').select(); try { document.execCommand('copy'); } catch (e2) {} } toast('Lien copié'); };
+  $('#c_inscriptionLien').onchange = e => saveCfg({ inscriptionLien: e.target.checked ? 'oui' : 'non' });
+  $('#newinv').onclick = () => confirmModal('Générer un nouveau lien ? L\'ancien ne permettra plus de s\'inscrire (les internes déjà inscrits gardent leur accès).', async () => {
+    try { const c2 = await api('adminNouveauLien'); S.config = c2; S.ov.config = c2; $('#invlink').value = inviteLink(c2.codeInvitation); toast('Nouveau lien créé'); } catch (e) { toast(e.message); } });
   $('#addi').onclick = () => $('#ilist').insertAdjacentHTML('beforeend', irow({ email: '', nom: '', role: 'interne', couleur: ['#d1495b', '#2f9e75', '#e08e1b', '#8a5cc7', '#1f8fb4', '#b5527a'][Math.floor(Math.random() * 6)] }));
   $('#ilist').onclick = e => { if (e.target.closest('.x')) e.target.closest('.irow').remove(); };
   $('#savei').onclick = async () => {
@@ -1206,6 +1271,7 @@ function ruleModal(k) {
   draw();
 }
 let confirmBox = false;
+function inviteLink(code) { return location.origin + location.pathname + '#invite=' + (code || ''); }
 function irow(i) {
   return `<div class="irow"><input type="color" name="couleur" value="${esc(i.couleur)}"><input type="text" name="nom" placeholder="Prénom" value="${esc(i.nom)}">
   <input class="em" type="email" name="email" placeholder="adresse@gmail.com" value="${esc(i.email)}">
