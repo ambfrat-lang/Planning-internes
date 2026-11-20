@@ -230,6 +230,20 @@ table.owt{width:100%;border-collapse:separate;border-spacing:3px;table-layout:fi
 .mc-list{margin-top:12px;display:flex;flex-direction:column;gap:6px;font-size:14px}
 .mc-list div{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .invite{display:flex;gap:8px;margin-bottom:6px} .invite input{flex:1;font-size:13px}
+
+nav.tabs button{position:relative}
+.bdg{position:absolute;top:2px;right:4px;min-width:17px;height:17px;border-radius:9px;background:#d95757;color:#fff;font-size:10.5px;font-weight:800;display:grid;place-items:center;padding:0 4px}
+.ech-empty{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 18px}
+.ech-ic{font-size:22px;width:42px;height:42px;border-radius:12px;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center}
+.ech-l{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px;flex-wrap:wrap}
+.ech-l.in{background:#f3f4fd;margin:0 -10px;padding:10px;border-radius:12px;border:0;margin-bottom:6px}
+.ech-l > div:first-child{flex:1;min-width:200px}
+.ech-msg{color:var(--muted);font-style:italic;margin-top:3px;font-size:13px}
+.ech-warn{background:#fbecd0;color:#7a4b06;border-radius:10px;padding:7px 10px;font-size:13px;margin-top:8px;width:100%}
+.btn[disabled]{opacity:.45}
+.ebadge{font-size:11px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--soft)}
+.ebadge.ok{background:#dff0e6;color:#1d4d33}.ebadge.no{background:#f4e3e3;color:#8a2b2b}
+details summary{cursor:pointer;padding:4px 0}
 </style>
 </head>
 <body>
@@ -447,10 +461,12 @@ var Engine = (function () {
     if (prev && g[prev] === e) return true;               // pas deux gardes d'affilée
     if (next && g[next] === e) return true;
     if (next && salle[next] === e) return true;           // repos de sécurité tomberait sur un jour de salle
-    if (salle[d] === e && c.cfg.gardeApresSalle !== 'oui') return true; // salle le jour puis garde la nuit
+    if (salle[d] === e && next && isSalleDay(next, c.fer)) return true; // salle puis garde le soir : seulement si le lendemain n'est pas travaillé
     if (next && statut(c.saisies, e, next) === 'indispo' && c.cfg.reposSurAbsence === 'non') return true;
     return false;
   }
+  // Titulaire de la salle de la semaine du samedi d (vendredi, ou dernier jour de salle de la semaine)
+  function titulaireSamedi(c, salle, d) { for (var k = 1; k <= 5; k++) { var x = salle[addDays(d, -k)]; if (x) return x; } return ''; }
   function placerGardes(c, salle, rnd, gImp) {
     var g = {}, st = {};
     for (var k in gImp) g[k] = gImp[k];
@@ -466,7 +482,8 @@ var Engine = (function () {
         var sc = x.charge * 10 + (t !== 'nuit' ? x.we * 15 : 0) + (t === 'dimanche' ? x.dim * 12 : 0)
           + (s === 'souhait' ? -45 : 0) + (s === 'eviter' ? 40 : 0) + (s === 'consult' ? 12 : 0)
           + (gap <= 2 ? 30 : gap <= 3 ? 12 : gap <= 4 ? 4 : 0)
-          + v.souple * 50 + v.bonus + rnd() * 8;
+          + v.souple * 50 + v.bonus + (t === 'samedi' && c.cfg.samediParSalle !== 'non' && titulaireSamedi(c, salle, d) === e ? -160 : 0)
+          + (c.cfg.samediParSalle !== 'non' && salle[d] === e && c.days[i + 1] && c.type[c.days[i + 1]] === 'samedi' ? 140 : 0) + rnd() * 8;
         if (sc < bs) { bs = sc; best = e; }
       });
       g[d] = best;
@@ -571,6 +588,7 @@ var Engine = (function () {
       if (!e) { cost += 1000; return; }
       ch[e] += poids(c.cfg, t); if (t !== 'nuit') we[e]++; if (t === 'dimanche') dim[e]++;
       var s = statut(c.saisies, e, d); if (s === 'eviter') cost += 40;
+      if (t === 'samedi' && c.cfg.samediParSalle !== 'non') { var ts = titulaireSamedi(c, salle, d); if (ts && ts !== e) cost += 70; }
     });
     c.emails.forEach(function (e) { c.days.forEach(function (d) { if (statut(c.saisies, e, d) === 'souhait' && g[d] !== e) cost += 20; }); });
     Object.keys(salle).forEach(function (d) {
@@ -634,9 +652,9 @@ var Engine = (function () {
         var enSalle = sd === e, enGarde = ge === e, enCons = (cons[d] || []).indexOf(e) >= 0;
         if (enCons) {
           st.consults++; st.consultMois[d.slice(0, 7)] = (st.consultMois[d.slice(0, 7)] || 0) + 1;
-          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en consultation le lendemain de sa garde' });
+          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en consultation sur son repos de garde' });
           if (enSalle) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est à la fois en salle et en consultation' });
-          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en consultation alors qu\'absent' });
+          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en consultation un jour posé « Ne pas travailler »' });
         }
         if (enGarde) {
           st.charge += poids(c.cfg, t);
@@ -644,14 +662,15 @@ var Engine = (function () {
           else if (t === 'samedi') { st.samedis++; st.astreintes++; st.demiGardes++; st.gardes++; }
           else { st.dimanches++; st.gardes += 2; }
           if (s === 'eviter') st.eviter++;
-          if (s === 'indispo' || s === 'pas_garde') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est de garde alors qu\'indisponible' });
-          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' enchaîne deux gardes' });
+          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est de garde un jour posé « Ne pas travailler »' });
+          if (s === 'pas_garde') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est de garde un jour posé « Pas de garde »' });
+          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' enchaîne deux gardes (pas de repos de garde)' });
         }
         if (enSalle) {
           st.joursSalle++;
-          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en salle le lendemain de sa garde' });
-          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en salle alors qu\'absent' });
-          if (enGarde && c.cfg.gardeApresSalle !== 'oui') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' fait la salle puis la garde' });
+          if (veille === e) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en salle sur son repos de garde' });
+          if (s === 'indispo') alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' est en salle un jour posé « Ne pas travailler »' });
+          if (enGarde && i + 1 < c.days.length && isSalleDay(c.days[i + 1], c.fer)) alertes.push({ date: d, type: 'conflit', msg: nom(e) + ' fait la salle puis la garde alors que le lendemain est travaillé' });
         }
         if (enSalle && enGarde) code = 'SG';
         else if (enCons && enGarde) code = 'CG';
@@ -682,7 +701,39 @@ var Engine = (function () {
     return { jours: jours, stats: stats, alertes: alertes, titulaires: titulaire };
   }
 
+
+  // ---------- Échanges entre internes ----------
+  // ex = { de, a, date1, poste1, date2?, poste2? } ; poste = GARDE | SALLE | CONSULT
+  function copieAff(aff) { return JSON.parse(JSON.stringify({ gardes: aff.gardes || {}, salle: aff.salle || {}, consult: aff.consult || {} })); }
+  function tient(aff, e, date, poste) {
+    if (poste === 'GARDE') return (aff.gardes[date] || [])[0] === e;
+    if (poste === 'SALLE') return aff.salle[date] === e;
+    if (poste === 'CONSULT') return (aff.consult[date] || []).indexOf(e) >= 0;
+    return false;
+  }
+  function transferer(aff, date, poste, de, a) {
+    if (poste === 'GARDE') aff.gardes[date] = [a];
+    else if (poste === 'SALLE') aff.salle[date] = a;
+    else if (poste === 'CONSULT') { var l = (aff.consult[date] || []).filter(function (x) { return x !== de && x !== a; }); l.push(a); aff.consult[date] = l; }
+  }
+  function appliquerEchange(aff, ex) {
+    var n = copieAff(aff);
+    if (!tient(n, ex.de, ex.date1, ex.poste1)) throw new Error('Le poste proposé n\'appartient plus à ' + ex.de);
+    if (ex.date2 && !tient(n, ex.a, ex.date2, ex.poste2)) throw new Error('Le poste demandé en échange a déjà changé');
+    transferer(n, ex.date1, ex.poste1, ex.de, ex.a);
+    if (ex.date2) transferer(n, ex.date2, ex.poste2, ex.a, ex.de);
+    return n;
+  }
+  /** Conflits créés par un échange (absent, deux gardes d'affilée, salle le lendemain de garde…) */
+  function conflitsEchange(cfg, internes, saisies, avant, apres, regles) {
+    var cle = function (a) { return a.date + '|' + a.msg; };
+    var deja = {};
+    deriver(cfg, internes, saisies, avant, regles).alertes.forEach(function (a) { deja[cle(a)] = 1; });
+    return deriver(cfg, internes, saisies, apres, regles).alertes.filter(function (a) { return a.type === 'conflit' && !deja[cle(a)]; });
+  }
+
   return {
+    appliquerEchange: appliquerEchange, conflitsEchange: conflitsEchange, tient: tient,
     listDays: listDays, addDays: addDays, dow: dow, lundi: lundi, isWE: isWE, feries: feries, dayType: dayType, isSalleDay: isSalleDay,
     TYPES: TYPES, RULE_TYPES: RULE_TYPES, decrire: decrire, generer: generer, deriver: deriver, statut: statut
   };
@@ -703,7 +754,7 @@ const MOIS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août'
 const JOURS = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
 
 const S = { token: null, me: null, config: null, internes: [], saisies: {}, note: '', planning: null,
-  regles: [], tab: 'dispo', brush: 'souhait', pfilter: 'ensemble', ov: null, saveState: 'ok', dirty: false };
+  regles: [], echanges: [], tab: 'dispo', brush: 'souhait', pfilter: 'ensemble', ov: null, saveState: 'ok', dirty: false, pending: {}, noteDirty: false };
 
 const $ = (s, el = document) => el.querySelector(s);
 const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -717,6 +768,12 @@ function toast(m) { const t = document.createElement('div'); t.className = 'toas
 /* ---------------- API ---------------- */
 async function api(action, data = {}) {
   if (DEMO) return Mock.call(action, data);
+  // Jeton Google expiré (au bout d'1 h) : on repasse par la connexion ; les modifications non envoyées
+  // sont gardées sur l'appareil et renvoyées automatiquement après reconnexion.
+  if (S.token && jwtExp(S.token) < Date.now() + 30000) {
+    logout('Session expirée : reconnecte-toi. Tes dernières modifications seront envoyées automatiquement.');
+    throw new Error('Session expirée');
+  }
   const r = await fetch(CONFIG.API_URL, { method: 'POST', headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify({ action, data, token: S.token, invite: invitation() }) });
   const j = await r.json();
   if (!j.ok) {
@@ -728,7 +785,7 @@ async function api(action, data = {}) {
 
 /* ---------------- Mode démo (données locales, aucune connexion) ---------------- */
 const Mock = (() => {
-  const KEY = 'planning-demo-v5';
+  const KEY = 'planning-demo-v7';
   function seed() {
     const internes = [
       { email: 'anthony@demo', nom: 'Anthony', role: 'admin', couleur: '#4b5bd6' },
@@ -737,14 +794,14 @@ const Mock = (() => {
       { email: 'ines@demo', nom: 'Inès', role: 'interne', couleur: '#e08e1b' },
       { email: 'hugo@demo', nom: 'Hugo', role: 'interne', couleur: '#8a5cc7' }
     ];
-    const config = { titre: 'Planning des internes', debut: '2027-02-01', fin: '2027-05-02', dateLimite: '2027-01-15', feries: '2027-03-29, 2027-05-01', poidsNuit: '1', poidsSamedi: '2', poidsDimanche: '2', gardeApresSalle: 'non', consultActif: 'oui', consultMin: '2', consultParJour: '1', visibilite: 'absences', inscriptionLien: 'oui', codeInvitation: 'demo1234', verrou: 'non', publie: 'non' };
+    const config = { titre: 'Planning des internes', debut: '2027-02-01', fin: '2027-05-02', dateLimite: '2027-01-15', feries: '2027-03-29, 2027-05-01', poidsNuit: '1', poidsSamedi: '2', poidsDimanche: '2', samediParSalle: 'oui', consultActif: 'oui', consultMin: '2', consultParJour: '1', visibilite: 'absences', inscriptionLien: 'oui', codeInvitation: 'demo1234', verrou: 'non', publie: 'non' };
     const saisies = {}, days = Engine.listDays(config.debut, config.fin);
     internes.slice(1).forEach((it, k) => {
       saisies[it.email] = {};
       days.forEach((d, i) => { const r = (i * 7 + k * 13) % 23; if (r === 0) saisies[it.email][d] = { s: 'souhait' }; else if (r === 1) saisies[it.email][d] = { s: 'indispo', c: 'Congé' }; else if (r === 2) saisies[it.email][d] = { s: 'eviter' }; else if (r === 5 && Engine.isSalleDay(d, [])) saisies[it.email][d] = { s: 'consult' }; });
     });
     const regles = [{ id: 'R1', type: 'max_gardes', qui: 'lucas@demo', n: 5, unite: 'mois', force: 'souple', actif: true }];
-    return { internes, config, saisies, notes: {}, maj: {}, aff: null, regles };
+    return { internes, config, saisies, notes: {}, maj: {}, aff: null, regles, echanges: [] };
   }
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY)) || seed(); } catch (e) { return seed(); } };
   const save = db => { try { localStorage.setItem(KEY, JSON.stringify(db)); } catch (e) {} };
@@ -755,15 +812,42 @@ const Mock = (() => {
     switch (action) {
       case 'init': { save(db); const vis = db.config.visibilite || 'absences', ok = vis === 'tout' ? ['souhait', 'consult', 'eviter', 'pas_garde', 'indispo'] : ['indispo'], equipe = {};
         if (vis !== 'non') Object.keys(db.saisies).forEach(e => { if (e === me.email) return; equipe[e] = {}; Object.entries(db.saisies[e]).forEach(([d, v]) => { if (ok.includes(v.s)) equipe[e][d] = { s: v.s }; }); });
-        return { me, config: db.config, internes: db.internes, saisies: db.saisies[me.email] || {}, note: db.notes[me.email] || '', planning: plan(db), regles: db.regles, equipe: vis === 'non' ? null : equipe }; }
-      case 'saveSaisies': db.saisies[me.email] = d.saisies; db.notes[me.email] = d.note; db.maj[me.email] = Date.now(); save(db); return { saved: true };
+        return { me, config: db.config, internes: db.internes, saisies: db.saisies[me.email] || {}, note: db.notes[me.email] || '', planning: plan(db), regles: db.regles, equipe: vis === 'non' ? null : equipe, echanges: db.echanges || [] }; }
+      case 'saveSaisies': { const cur = db.saisies[me.email] = db.saisies[me.email] || {};
+        if (d.changes) Object.entries(d.changes).forEach(([k, v]) => { if (v.s === 'dispo' && !v.c) delete cur[k]; else cur[k] = v; }); else if (d.saisies) db.saisies[me.email] = d.saisies;
+        if (!d.changes || d.noteChanged) db.notes[me.email] = d.note; db.maj[me.email] = Date.now(); save(db); return { saved: true }; }
       case 'getPlanning': return plan(db);
       case 'adminOverview': return { config: db.config, internes: db.internes, saisies: db.saisies, notes: db.notes, maj: db.maj, regles: db.regles };
       case 'adminSaveConfig': Object.assign(db.config, d); save(db); return db.config;
       case 'adminSaveInternes': db.internes = d.internes; save(db); return db.internes;
       case 'adminNouveauLien': db.config.codeInvitation = Math.random().toString(36).slice(2, 10); save(db); return db.config;
       case 'adminSaveRegles': db.regles = d.regles.map((r, k) => Object.assign({}, r, { id: r.id || 'R' + Date.now() + k })); save(db); return db.regles;
-      case 'adminGenerate': await wait(50); db.aff = Engine.generer(db.config, db.internes.map(i => i.email), db.saisies, db.regles, { essais: 250 }); save(db); return plan(db);
+      case 'adminGenerate': {
+        await wait(50); db.aff = Engine.generer(db.config, db.internes.map(i => i.email), db.saisies, db.regles, { essais: 250 });
+        // démo : une proposition d'échange de Camille vers Anthony, et une garde à prendre de Lucas
+        const ds = Object.keys(db.aff.gardes).sort(), gs = e => ds.filter(d => db.aff.gardes[d][0] === e);
+        const ok = ex => { try { return !Engine.conflitsEchange(db.config, db.internes, db.saisies, db.aff, Engine.appliquerEchange(db.aff, ex), db.regles).length; } catch (e) { return false; } };
+        let c1, a1, l1;
+        for (const c of gs('camille@demo')) { const a = gs('anthony@demo').find(x => ok({ de: 'camille@demo', a: 'anthony@demo', date1: c, poste1: 'GARDE', date2: x, poste2: 'GARDE' })); if (a) { c1 = c; a1 = a; break; } }
+        l1 = gs('lucas@demo').find(x => x > '2027-02-10' && ok({ de: 'lucas@demo', a: 'anthony@demo', date1: x, poste1: 'GARDE' }));
+        db.echanges = [];
+        if (c1 && a1) db.echanges.push({ id: 'E1', cree: Date.now(), de: 'camille@demo', a: 'anthony@demo', date1: c1, poste1: 'GARDE', date2: a1, poste2: 'GARDE', statut: 'proposé', message: 'Mariage d\'une amie ce jour-là 🙏' });
+        if (l1) db.echanges.push({ id: 'E2', cree: Date.now() - 1000, de: 'lucas@demo', a: '*', date1: l1, poste1: 'GARDE', date2: '', poste2: '', statut: 'proposé', message: '' });
+        save(db); return plan(db);
+      }
+      case 'echanges': return db.echanges || [];
+      case 'echangeProposer': { db.echanges = db.echanges || [];
+        if (d.a !== '*') { const conf = Engine.conflitsEchange(db.config, db.internes, db.saisies, db.aff, Engine.appliquerEchange(db.aff, Object.assign({ de: me.email }, d)), db.regles); if (conf.length) throw new Error('Échange impossible : ' + conf.map(c => c.msg).join(' ; ')); } db.echanges.unshift({ id: 'E' + Date.now(), cree: Date.now(), de: me.email, a: d.a, date1: d.date1, poste1: d.poste1, date2: d.date2 || '', poste2: d.date2 ? d.poste2 : '', statut: 'proposé', message: d.message || '' }); save(db); return db.echanges; }
+      case 'echangeAnnuler': { const x = db.echanges.find(x => x.id === d.id); x.statut = 'annulé'; save(db); return db.echanges; }
+      case 'echangeRepondre': {
+        const x = db.echanges.find(x => x.id === d.id);
+        if (!x || x.statut !== 'proposé') throw new Error('Cette proposition n\'est plus disponible');
+        if (!d.accepter) { x.statut = 'refusé'; save(db); return { echanges: db.echanges, planning: plan(db) }; }
+        const apres = Engine.appliquerEchange(db.aff, Object.assign({}, x, { a: me.email }));
+        const conf = Engine.conflitsEchange(db.config, db.internes, db.saisies, db.aff, apres, db.regles);
+        if (conf.length) throw new Error('Échange impossible : ' + conf.map(c => c.msg).join(' ; '));
+        db.aff = apres; x.statut = 'accepté'; x.pris = me.email; save(db); return { echanges: db.echanges, planning: plan(db) };
+      }
       case 'adminSetJour': {
         const a = db.aff || { gardes: {}, salle: {} };
         if ('garde' in d) a.gardes[d.date] = d.garde ? [d.garde] : [];
@@ -817,8 +901,10 @@ async function boot() {
   $('#app').innerHTML = '<div class="spin"></div>';
   try {
     const d = await api('init');
-    Object.assign(S, { me: d.me, config: d.config, internes: d.internes, saisies: d.saisies || {}, note: d.note || '', planning: d.planning, regles: d.regles || [], equipe: d.equipe || null });
+    Object.assign(S, { me: d.me, config: d.config, internes: d.internes, saisies: d.saisies || {}, note: d.note || '', planning: d.planning, regles: d.regles || [], equipe: d.equipe || null, echanges: d.echanges || [], pending: {}, noteDirty: false });
+    const reprise = restorePending();
     render();
+    if (reprise) { toast('Modifications non envoyées récupérées — enregistrement…'); queueSave(); }
   } catch (e) { if (S.token || DEMO) showLogin(e.message); }
 }
 
@@ -834,8 +920,9 @@ function render() {
       ${DEMO ? '' : '<button class="btn ghost sm" id="out">Quitter</button>'}</div>
   </div></header>
   <main class="wrap" id="view"></main>
-  <nav class="tabs">${tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}</button>`).join('')}</nav>`;
-  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); window.scrollTo(0, 0); });
+  <nav class="tabs">${tabs.map(([k, l]) => `<button data-tab="${k}" class="${S.tab === k ? 'on' : ''}">${l}${k === 'planning' && echPourMoi().length ? `<span class="bdg">${echPourMoi().length}</span>` : ''}</button>`).join('')}</nav>`;
+  document.querySelectorAll('nav.tabs button').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; render(); window.scrollTo(0, 0);
+    if (S.tab === 'planning') Promise.all([api('echanges'), api('getPlanning')]).then(([e, p]) => { const ch = JSON.stringify(e) !== JSON.stringify(S.echanges) || JSON.stringify(p) !== JSON.stringify(S.planning); S.echanges = e; S.planning = p; if (ch && S.tab === 'planning' && !document.querySelector('.modal')) render(); }).catch(() => {}); });
   if ($('#out')) $('#out').onclick = () => logout();
   ({ dispo: renderDispo, planning: renderPlanning, admin: renderAdmin })[S.tab]();
 }
@@ -890,7 +977,7 @@ function renderDispo() {
     monthCal('mc-dispo', () => Object.assign({}, S.equipe, { [S.me.email]: S.saisies }), S.internes);
   }
   document.querySelectorAll('.brush').forEach(b => b.onclick = () => { S.brush = b.dataset.b; document.querySelectorAll('.brush').forEach(x => x.classList.toggle('on', x === b)); });
-  $('#note').oninput = e => { S.note = e.target.value; queueSave(); };
+  $('#note').oninput = e => { S.note = e.target.value; S.noteDirty = true; savePending(); queueSave(); };
   if (locked) return;
   const cal = $('#cal'); let painting = false, paintTo = null;
   cal.addEventListener('click', e => { const c = e.target.closest('.day[data-d]'); if (c && !painting) tap(c.dataset.d); });
@@ -949,6 +1036,7 @@ function dayCell(d) {
 function setDay(d, s, c) {
   const prev = S.saisies[d] || {}; const n = { s: s || prev.s || 'dispo', c: c !== undefined ? c : (prev.c || '') };
   if (n.s === 'dispo' && !n.c) delete S.saisies[d]; else S.saisies[d] = n;
+  S.pending[d] = { s: n.s, c: n.c }; savePending();
   const el = document.querySelector(`.day[data-d="${d}"]`); if (el) el.outerHTML = dayCell(d);
 }
 function paint(d, s) { if (cur(d) !== s) { setDay(d, s); queueSave(); } }
@@ -966,17 +1054,58 @@ function noteModal(d) {
     <div class="row" style="margin-top:12px;justify-content:flex-end"><button class="btn ghost" data-close>Annuler</button><button class="btn" id="ok">Enregistrer</button></div>`,
     m => { $('#nc', m).focus(); $('#ok', m).onclick = () => { setDay(d, null, $('#nc', m).value.trim()); queueSave(); m.remove(); }; });
 }
-let saveTimer = null;
+let saveTimer = null, saving = false;
+// Modifications pas encore confirmées par le serveur : gardées sur l'appareil (survivent à une
+// expiration de session, une fermeture d'onglet, une coupure réseau) et renvoyées au prochain lancement.
+const PKEY = () => 'pl_pending_' + (S.me ? S.me.email : '');
+const aEnvoyer = () => Object.keys(S.pending).length > 0 || S.noteDirty;
+function savePending() {
+  try { if (aEnvoyer()) localStorage.setItem(PKEY(), JSON.stringify({ t: Date.now(), changes: S.pending, note: S.noteDirty ? S.note : null }));
+    else localStorage.removeItem(PKEY()); } catch (e) {}
+}
+function restorePending() {
+  try {
+    const x = JSON.parse(localStorage.getItem(PKEY()) || 'null');
+    if (!x || Date.now() - x.t > 14 * 864e5) return false;
+    Object.entries(x.changes || {}).forEach(([d, v]) => { S.pending[d] = v; if (v.s === 'dispo' && !v.c) delete S.saisies[d]; else S.saisies[d] = v; });
+    if (x.note != null) { S.note = x.note; S.noteDirty = true; }
+    return aEnvoyer();
+  } catch (e) { return false; }
+}
 function queueSave() { S.saveState = 'busy'; updSave(); clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 900); }
 async function doSave() {
-  try { await api('saveSaisies', { saisies: S.saisies, note: S.note }); S.saveState = 'ok'; }
-  catch (e) { S.saveState = 'err'; toast(e.message); }
+  if (saving) { clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 400); return; } // un seul envoi à la fois, dans l'ordre
+  const changes = Object.assign({}, S.pending), noteChanged = S.noteDirty, note = S.note;
+  if (!Object.keys(changes).length && !noteChanged) { S.saveState = 'ok'; updSave(); return; }
+  saving = true;
+  try {
+    // « saisies » (tout) est joint par sécurité : un ancien serveur pas encore mis à jour l'utilise ;
+    // le serveur corrigé n'applique que « changes » (les jours réellement modifiés).
+    await api('saveSaisies', { changes, noteChanged, note, saisies: S.saisies });
+    Object.keys(changes).forEach(d => { if (JSON.stringify(S.pending[d]) === JSON.stringify(changes[d])) delete S.pending[d]; });
+    if (noteChanged && S.note === note) S.noteDirty = false;
+    savePending();
+    S.saveState = aEnvoyer() ? 'busy' : 'ok';
+    if (aEnvoyer()) { clearTimeout(saveTimer); saveTimer = setTimeout(doSave, 400); }
+  } catch (e) { S.saveState = 'err'; toast(e.message); }
+  finally { saving = false; }
   updSave();
 }
+// Retour sur l'appli (autre onglet, téléphone réveillé) : on recharge ses saisies pour ne pas travailler sur une version périmée.
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible' || DEMO || !S.me || !S.token) return;
+  if (aEnvoyer() || saving || document.querySelector('.modal') || jwtExp(S.token) < Date.now() + 30000) return;
+  try {
+    const d = await api('init');
+    if (aEnvoyer() || saving || document.querySelector('.modal')) return;
+    Object.assign(S, { me: d.me, config: d.config, internes: d.internes, saisies: d.saisies || {}, note: d.note || '', planning: d.planning, regles: d.regles || [], equipe: d.equipe || null, echanges: d.echanges || [] });
+    if (S.tab !== 'admin') render();
+  } catch (e) {}
+});
 function updSave() { const p = $('.pulse'), t = $('#savetxt'); if (!p) return;
   p.className = 'pulse ' + (S.saveState === 'busy' ? 'busy' : S.saveState === 'err' ? 'err' : '');
   t.textContent = S.saveState === 'busy' ? 'Enregistrement…' : S.saveState === 'err' ? 'Échec — réessaie' : 'Tout est enregistré'; }
-window.addEventListener('beforeunload', e => { if (S.saveState === 'busy') { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (S.saveState === 'busy' || aEnvoyer()) { e.preventDefault(); e.returnValue = ''; } });
 
 /* ----- Onglet : planning ----- */
 const codeLabel = (c, t) => c === 'G' ? Engine.TYPES[t].court : CODES[c] || '';
@@ -993,15 +1122,18 @@ function renderPlanning() {
   }
   const byDate = {}; p.jours.forEach(j => byDate[j.date] = j);
   const me = S.me.email, mine = S.pfilter === 'moi', ens = S.pfilter === 'ensemble';
+  S.byDate = byDate;
   $('#view').innerHTML = `
   <div class="sec-head"><div><h2>Planning</h2>${isAdmin && S.config.publie !== 'oui' ? '<div class="chip" style="margin-top:6px;background:#fbecd0">Brouillon — non visible des internes</div>' : ''}</div>
     <div class="row">${isAdmin ? '<button class="btn soft sm" id="relance">↻ Relancer</button>' : ''}
     <div class="seg"><button data-f="ensemble" class="${ens ? 'on' : ''}">Ensemble</button><button data-f="tous" class="${S.pfilter === 'tous' ? 'on' : ''}">Gardes</button><button data-f="moi" class="${mine ? 'on' : ''}">Moi</button></div></div></div>
+  ${echangesHTML()}
   ${isAdmin && p.alertes.length ? `<div class="banner warn">${p.alertes.length} point(s) à vérifier — détails dans l'onglet Admin.</div>` : ''}
   ${ens ? overviewHTML(p, me) : calHTML(p, byDate, me, mine)}
   <div class="card"><h2>Compteurs</h2><p class="muted small" style="margin:2px 0 8px">Samedi = astreinte + demi-garde + garde · dimanche/férié = 2 gardes (jour + nuit).</p><div class="scroll">${statsTable(p)}</div></div>`;
   document.querySelectorAll('.seg button').forEach(b => b.onclick = () => { S.pfilter = b.dataset.f; renderPlanning(); });
   document.querySelectorAll('.pday[data-d], .owt td[data-d]').forEach(c => c.onclick = () => dayModal(byDate[c.dataset.d]));
+  bindEchanges();
   if ($('#relance')) $('#relance').onclick = () => confirmModal('Relancer le calcul ? Les modifications manuelles seront écrasées.', () => lancer($('#relance')));
 }
 function calHTML(p, byDate, me, mine) {
@@ -1061,14 +1193,16 @@ function dayModal(j) {
     <div style="margin-top:14px">${['G', 'SG', 'CG', 'S', 'C', 'R', 'A', 'L'].filter(c => groups[c]).map(c => `
       <div class="switch"><span class="mycode c-${c}" style="font-size:12px">${c === 'L' ? 'Libre' : codeLabel(c, j.type)}</span>
       <span style="text-align:right">${groups[c].map(i => esc(i.nom)).join(', ')}</span></div>`).join('')}</div>
+    ${mesPostes(j).length ? `<div style="margin-top:16px">${mesPostes(j).map(pp => `<button class="btn accent" style="width:100%;margin-bottom:8px" data-ech="${pp}">⇄ Échanger / céder ma ${esc(posteLabel(j.date, pp).toLowerCase())}</button>`).join('')}</div>` : ''}
     ${isAdmin ? `<div style="margin-top:16px">
       <label class="f">Garde (${esc(Engine.TYPES[j.type].court)})</label><select id="mg" style="margin-bottom:12px">${opt(j.garde)}</select>
       ${j.salle != null ? `<label class="f">Salle ce jour</label><select id="ms">${opt(j.salle)}</select>
       <label class="row small" style="margin-top:8px;gap:8px"><input type="checkbox" id="mw"> Appliquer à toute la semaine (lun. → ven.)</label>
       <label class="f" style="margin-top:14px">Consultation</label><div class="days-pick" id="mc">${S.internes.map(i => `<label><input type="checkbox" value="${esc(i.email)}" ${(j.consult || []).includes(i.email) ? 'checked' : ''}><span>${esc(i.nom)}</span></label>`).join('')}</div>` : ''}
       <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-close>Fermer</button><button class="btn" id="sg">Enregistrer</button></div></div>`
-    : '<div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-close>Fermer</button></div>'}`,
-    m => { if (!isAdmin) return;
+    : '<div class="row" style="justify-content:flex-end;margin-top:8px"><button class="btn ghost" data-close>Fermer</button></div>'}`,
+    m => { m.querySelectorAll('[data-ech]').forEach(b => b.onclick = () => { m.remove(); echangeModal(j.date, b.dataset.ech); });
+      if (!isAdmin) return;
       if (!S.ov) api('adminOverview').then(o => { S.ov = o; });
       $('#sg', m).onclick = async () => {
         const data = { date: j.date, garde: $('#mg', m).value };
@@ -1079,7 +1213,7 @@ function dayModal(j) {
 
 async function lancer(btn) {
   if (btn) { btn.disabled = true; btn.textContent = 'Calcul en cours…'; }
-  try { S.planning = await api('adminGenerate', {}); toast('Planning calculé'); S.tab = 'planning'; render(); window.scrollTo(0, 0); }
+  try { S.planning = await api('adminGenerate', {}); try { S.echanges = await api('echanges'); } catch (e) {} toast('Planning calculé'); S.tab = 'planning'; render(); window.scrollTo(0, 0); }
   catch (e) { toast(e.message); if (btn) { btn.disabled = false; btn.textContent = '▶ Lancer le planning'; } }
 }
 
@@ -1115,10 +1249,11 @@ async function renderAdmin() {
       <li><b>Samedi en 24 h</b>, un seul interne : astreinte (matin) + demi-garde (après-midi) + garde (nuit).</li>
       <li><b>Dimanche et jours fériés en 24 h</b>, un seul interne : garde de jour + garde de nuit.</li>
       <li><b>Repos de sécurité</b> le lendemain de chaque garde : l'interne de salle ne prend donc pas de garde la veille de ses jours de salle.</li>
+      <li><b>Salle puis garde le même soir</b> : interdit, sauf si le lendemain n'est pas travaillé (vendredi soir, veille de férié).</li>
       <li><b>Consultations</b> (facultatives) : l'algorithme en propose sur les jours où l'interne est libre (ni salle, ni garde, ni repos), en visant l'objectif mensuel ci-dessous et en priorité sur les souhaits de consultation.</li>
       <li>La salle n'est remplacée sur une journée qu'en cas exceptionnel (absence). Équilibre entre internes : charge pondérée, week-ends, dimanches, semaines de salle.</li>
     </ul>
-    <div class="switch"><span>Autoriser l'interne de salle à prendre la garde le soir même (vendredi notamment)</span><label class="tg"><input type="checkbox" id="c_gardeApresSalle" ${c.gardeApresSalle === 'oui' ? 'checked' : ''}><span></span></label></div>
+    <div class="switch"><span>L'interne de salle de la semaine prend en priorité le samedi (24 h)</span><label class="tg"><input type="checkbox" id="c_samediParSalle" ${c.samediParSalle !== 'non' ? 'checked' : ''}><span></span></label></div>
     <div class="switch"><span>Proposer des consultations</span><label class="tg"><input type="checkbox" id="c_consultActif" ${c.consultActif !== 'non' ? 'checked' : ''}><span></span></label></div>
     <div class="grid2" style="margin-top:8px">
       <div><label class="f">Objectif : jours de consultation par mois et par interne</label><input type="number" min="0" max="10" id="c_consultMin" value="${esc(c.consultMin || 2)}"></div>
@@ -1187,7 +1322,7 @@ async function renderAdmin() {
   $('#gen').onclick = () => p ? confirmModal('Relancer le calcul ? Les modifications manuelles seront écrasées.', () => lancer($('#gen'))) : lancer($('#gen'));
   if ($('#see')) $('#see').onclick = () => { S.tab = 'planning'; render(); };
   if ($('#reset')) $('#reset').onclick = async () => { await Mock.call('reset'); location.reload(); };
-  $('#c_gardeApresSalle').onchange = e => saveCfg({ gardeApresSalle: e.target.checked ? 'oui' : 'non' });
+  $('#c_samediParSalle').onchange = e => saveCfg({ samediParSalle: e.target.checked ? 'oui' : 'non' });
   $('#c_consultActif').onchange = e => saveCfg({ consultActif: e.target.checked ? 'oui' : 'non' });
   ['consultMin', 'consultParJour'].forEach(k => $('#c_' + k).onchange = e => saveCfg({ [k]: e.target.value }));
   $('#addr').onclick = () => ruleModal();
@@ -1211,7 +1346,7 @@ async function renderAdmin() {
   $('#ilist').onclick = e => { if (e.target.closest('.x')) e.target.closest('.irow').remove(); };
   $('#savei').onclick = async () => {
     const list = [...document.querySelectorAll('.irow')].map(r => ({ couleur: $('[name=couleur]', r).value, nom: $('[name=nom]', r).value.trim(), email: $('[name=email]', r).value.trim().toLowerCase(), role: $('[name=role]', r).value }));
-    try { S.internes = await api('adminSaveInternes', { internes: list }); toast('Liste enregistrée'); renderAdmin(); } catch (e) { toast(e.message); }
+    try { S.internes = await api('adminSaveInternes', { internes: list, connus: S.ov.internes.map(i => i.email) }); toast('Liste enregistrée'); renderAdmin(); } catch (e) { toast(e.message); }
   };
 }
 async function saveCfg(d, rerender) {
@@ -1276,6 +1411,93 @@ function ruleModal(k) {
   draw();
 }
 let confirmBox = false;
+/* ----- Échanges ----- */
+const fd = d => { const p = d.split('-'); return `${JOURS[Engine.dow(d)].slice(0, 3)}. ${+p[2]} ${MOIS[+p[1] - 1]}`; };
+function posteLabel(d, poste) {
+  if (poste === 'SALLE') return 'Salle';
+  if (poste === 'CONSULT') return 'Consultation';
+  const t = S.byDate && S.byDate[d] ? S.byDate[d].type : Engine.dayType(d, fer());
+  return t === 'nuit' ? 'Garde de nuit' : 'Garde de 24 h';
+}
+const posteTxt = (d, p) => `${posteLabel(d, p).toLowerCase()} du ${fd(d)}`;
+function postesDe(e, j) { const r = []; if (j.garde === e) r.push('GARDE'); if (j.salle === e) r.push('SALLE'); if ((j.consult || []).includes(e)) r.push('CONSULT'); return r; }
+const mesPostes = j => (S.planning && (S.config.publie === 'oui' || S.me.role === 'admin') && j.date >= today()) ? postesDe(S.me.email, j) : [];
+const today = () => new Date().toISOString().slice(0, 10);
+function affPlanning() {
+  const a = { gardes: {}, salle: {}, consult: {} };
+  (S.planning ? S.planning.jours : []).forEach(j => { a.gardes[j.date] = j.garde ? [j.garde] : []; if (j.salle != null) a.salle[j.date] = j.salle; a.consult[j.date] = (j.consult || []).slice(); });
+  return a;
+}
+function precheck(ex) {
+  try {
+    const sa = Object.assign({}, S.equipe || {}, { [S.me.email]: S.saisies }), av = affPlanning();
+    return Engine.conflitsEchange(S.config, S.internes, sa, av, Engine.appliquerEchange(av, ex), []).map(c => c.msg);
+  } catch (e) { return [e.message]; }
+}
+const echPourMoi = () => (S.echanges || []).filter(x => x.statut === 'proposé' && x.de !== S.me.email && (x.a === S.me.email || x.a === '*'));
+function echangesHTML() {
+  const me = S.me.email, E = S.echanges || [];
+  const pour = echPourMoi(), miens = E.filter(x => x.statut === 'proposé' && x.de === me);
+  const hist = E.filter(x => x.statut !== 'proposé').slice(0, 15);
+  const qui = e => e === '*' ? 'tout le monde' : e === me ? 'toi' : nomDe(e);
+  const ligne = x => {
+    const de = x.de === me ? 'Tu' : nomDe(x.de);
+    if (x.date2) return `${esc(de)} ${x.de === me ? 'proposes' : 'propose'} ${x.de === me ? 'ta' : 'sa'} <b>${posteTxt(x.date1, x.poste1)}</b> contre ${x.a === me ? 'ta' : 'la'} <b>${posteTxt(x.date2, x.poste2)}</b>${x.a !== me && x.de === me ? ' de ' + esc(qui(x.a)) : ''}`;
+    return `${esc(de)} ${x.de === me ? 'cèdes' : 'cède'} ${x.de === me ? 'ta' : 'sa'} <b>${posteTxt(x.date1, x.poste1)}</b> à ${esc(qui(x.a))}`;
+  };
+  const ST = { 'accepté': ['ok', 'Accepté'], 'refusé': ['no', 'Refusé'], 'annulé': ['no', 'Annulé'], 'expiré': ['no', 'Expiré'] };
+  if (!pour.length && !miens.length && !hist.length) return `<div class="card ech-empty"><div><b>Échanges</b><div class="muted small">Pour échanger ou céder un de tes jours, touche-le dans le planning.</div></div><span class="ech-ic">⇄</span></div>`;
+  return `<div class="card ech"><h2>Échanges</h2>
+    ${pour.length ? `<h3 class="sub">Pour toi</h3>${pour.map(x => `<div class="ech-l in"><div>${ligne(x)}${x.message ? `<div class="ech-msg">« ${esc(x.message)} »</div>` : ''}</div>
+      ${(() => { const pb = precheck(Object.assign({}, x, { a: me })); return pb.length ? `<div class="ech-warn">⚠ Pas possible pour toi : ${esc(pb.join(' ; '))}</div>` : ''; })()}
+      <div class="row">${x.a === '*' ? `<button class="btn accent sm" data-acc="${x.id}" ${precheck(Object.assign({}, x, { a: me })).length ? 'disabled' : ''}>Je la prends</button>` : `<button class="btn accent sm" data-acc="${x.id}" ${precheck(Object.assign({}, x, { a: me })).length ? 'disabled' : ''}>Accepter</button><button class="btn ghost sm" data-ref="${x.id}">Refuser</button>`}</div></div>`).join('')}` : ''}
+    ${miens.length ? `<h3 class="sub">Mes propositions en attente</h3>${miens.map(x => `<div class="ech-l"><div>${ligne(x)}</div><button class="btn ghost sm" data-ann="${x.id}">Annuler</button></div>`).join('')}` : ''}
+    ${hist.length ? `<details style="margin-top:10px"><summary class="small muted">Historique (${hist.length})</summary>${hist.map(x => `<div class="ech-l h"><div class="small">${ligne(x)}${x.statut === 'accepté' && x.a === '*' ? ' — prise par ' + esc(qui(x.pris)) : ''}</div><span class="ebadge ${ST[x.statut] ? ST[x.statut][0] : ''}">${ST[x.statut] ? ST[x.statut][1] : esc(x.statut)}</span></div>`).join('')}</details>` : ''}
+    <p class="muted small" style="margin:10px 0 0">Touche un de tes jours dans le planning pour proposer un échange. Un échange n'est possible que s'il respecte le repos de garde et les jours « Ne pas travailler » / « Pas de garde » déjà posés par chacun. Une fois accepté, le planning se met à jour tout seul.</p>
+  </div>`;
+}
+function bindEchanges() {
+  const go = async (btn, action, data, msg) => {
+    btn.disabled = true;
+    try { const r = await api(action, data); if (Array.isArray(r)) S.echanges = r; else { S.echanges = r.echanges; if (r.planning) S.planning = r.planning; } toast(msg); render(); }
+    catch (e) { btn.disabled = false; modal(`<h2 style="font-size:20px">Pas possible</h2><p>${esc(e.message)}</p><div class="row" style="justify-content:flex-end"><button class="btn" data-close>OK</button></div>`); }
+  };
+  document.querySelectorAll('[data-acc]').forEach(b => b.onclick = () => { const x = S.echanges.find(y => y.id === b.dataset.acc);
+    confirmModal(x.date2 ? `Tu prends la ${posteTxt(x.date1, x.poste1)} et tu donnes ta ${posteTxt(x.date2, x.poste2)}. Le planning sera modifié tout de suite.` : `Tu prends la ${posteTxt(x.date1, x.poste1)}. Le planning sera modifié tout de suite.`,
+      () => go(b, 'echangeRepondre', { id: x.id, accepter: true }, 'Échange effectué ✓')); });
+  document.querySelectorAll('[data-ref]').forEach(b => b.onclick = () => go(b, 'echangeRepondre', { id: b.dataset.ref, accepter: false }, 'Proposition refusée'));
+  document.querySelectorAll('[data-ann]').forEach(b => b.onclick = () => go(b, 'echangeAnnuler', { id: b.dataset.ann }, 'Proposition annulée'));
+}
+function echangeModal(date, poste) {
+  const me = S.me.email, autres = S.internes.filter(i => i.email !== me);
+  const postesCollegue = e => S.planning.jours.filter(j => j.date >= today()).flatMap(j => postesDe(e, j).map(p => ({ d: j.date, p })));
+  const m = modal(`<h2 style="font-size:22px">Échanger ou céder</h2>
+    <p class="muted small" style="margin:4px 0 12px">Ta ${esc(posteTxt(date, poste))}</p>
+    <label class="f">Avec qui ?</label>
+    <select id="ea"><option value="*">Tout le monde (le premier qui accepte la prend)</option>${autres.map(i => `<option value="${esc(i.email)}">${esc(i.nom)}</option>`).join('')}</select>
+    <div id="ectr" style="margin-top:12px"></div>
+    <label class="f" style="margin-top:12px">Message (facultatif)</label><input type="text" id="em" maxlength="200" placeholder="Ex. : mariage d'un ami ce jour-là">
+    <div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn ghost" data-close>Annuler</button><button class="btn" id="es">Envoyer</button></div>`);
+  const draw = () => {
+    const a = $('#ea', m).value;
+    if (a === '*') { $('#ectr', m).innerHTML = '<div class="banner">Proposée à tous, sans contrepartie : le premier interne disponible qui accepte la prend.</div>'; return; }
+    const l = postesCollegue(a);
+    const pc = (d2, p2) => precheck({ de: me, a, date1: date, poste1: poste, date2: d2, poste2: p2 });
+    $('#ectr', m).innerHTML = `<label class="f">En échange de</label><select id="e2"><option value="">Rien — je lui cède ma ${esc(posteLabel(date, poste).toLowerCase())}</option>${l.map(x => { const k = pc(x.d, x.p).length;
+      return `<option value="${x.d}|${x.p}" ${k ? 'disabled' : ''}>Sa ${esc(posteTxt(x.d, x.p))}${k ? ' — incompatible' : ''}</option>`; }).join('')}</select><div id="ewarn"></div>`;
+    const upd = () => { const v = $('#e2', m).value; const pb = v ? pc(...v.split('|')) : pc('', ''); $('#ewarn', m).innerHTML = pb.length ? `<div class="ech-warn">⚠ ${esc(pb.join(' ; '))}</div>` : ''; $('#es', m).disabled = !!pb.length; };
+    $('#e2', m).onchange = upd; upd();
+  };
+  $('#ea', m).onchange = draw; draw();
+  $('#es', m).onclick = async () => {
+    const a = $('#ea', m).value, v = $('#e2', m) ? $('#e2', m).value : '';
+    const data = { a, date1: date, poste1: poste, message: $('#em', m).value.trim() };
+    if (v) { const [d2, p2] = v.split('|'); data.date2 = d2; data.poste2 = p2; }
+    $('#es', m).disabled = true;
+    try { S.echanges = await api('echangeProposer', data); m.remove(); toast(a === '*' ? 'Proposée à tout le monde' : 'Proposition envoyée à ' + nomDe(a)); render(); }
+    catch (e) { $('#es', m).disabled = false; $('#ewarn', m) ? $('#ewarn', m).innerHTML = `<div class="ech-warn">⚠ ${esc(e.message)}</div>` : toast(e.message); }
+  };
+}
 function inviteLink(code) { return location.origin + location.pathname + '#invite=' + (code || ''); }
 function irow(i) {
   return `<div class="irow"><input type="color" name="couleur" value="${esc(i.couleur)}"><input type="text" name="nom" placeholder="Prénom" value="${esc(i.nom)}">
